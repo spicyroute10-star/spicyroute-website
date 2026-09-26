@@ -1,0 +1,9 @@
+{
+  "appId": "com.spicyroute.app",
+  "appName": "Spicy Route",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
+

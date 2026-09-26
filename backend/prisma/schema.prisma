@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String
+  role        String       @default("CUSTOMER") // "ADMIN", "VENDOR", "CUSTOMER"
+  phone       String?
+  address     String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  restaurants Restaurant[]
+  orders      Order[]
+}
+
+model Restaurant {
+  id               Int               @id @default(autoincrement())
+  name             String
+  description      String?
+  cuisine          String
+  address          String
+  phone            String
+  rating           Float             @default(4.6)
+  isOpen           Boolean           @default(true)
+  isApproved       Boolean           @default(true)
+  commissionRate   Float             @default(15.0)
+  imageUrl         String?
+  openingHours     String            @default("10:00 AM - 10:00 PM")
+  ownerId          Int
+  owner            User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  menuItems        MenuItem[]
+  orders           Order[]
+  deliveryPartners DeliveryPartner[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model DeliveryPartner {
+  id            Int        @id @default(autoincrement())
+  name          String
+  phone         String
+  vehicleNumber String?
+  restaurantId  Int
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orders        Order[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model MenuItem {
+  id           Int         @id @default(autoincrement())
+  name         String
+  description  String?
+  price        Float
+  category     String      @default("Main")
+  imageUrl     String?
+  isAvailable  Boolean     @default(true)
+  restaurantId Int
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Order {
+  id                     Int              @id @default(autoincrement())
+  orderNumber            String           @unique
+  customerId             Int
+  customer               User             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  restaurantId           Int
+  restaurant             Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  status                 String           @default("PENDING") // PENDING, PREPARING, READY, DISPATCHED, DELIVERED, CANCELLED
+  subtotal               Float
+  deliveryFee            Float            @default(3.99)
+  tax                    Float            @default(2.50)
+  total                  Float
+  commissionRate         Float            @default(15.0)
+  commissionAmount       Float            @default(0.0)
+  vendorEarnings         Float            @default(0.0)
+  deliveryAddress        String
+  customerPhone          String?
+  notes                  String?
+  deliveryPartnerId      Int?
+  deliveryPartner        DeliveryPartner? @relation(fields: [deliveryPartnerId], references: [id], onDelete: SetNull)
+  deliveryPartnerName    String?
+  deliveryPartnerPhone   String?
+  deliveryPartnerVehicle String?
+  items                  OrderItem[]
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+}
+
+model OrderItem {
+  id         Int       @id @default(autoincrement())
+  orderId    Int
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId Int?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  name       String
+  price      Float
+  quantity   Int
+}
+
+model PlatformSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

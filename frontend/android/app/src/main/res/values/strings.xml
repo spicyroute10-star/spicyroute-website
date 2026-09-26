@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Spicy Route</string>
+    <string name="title_activity_main">Spicy Route</string>
+    <string name="package_name">com.spicyroute.app</string>
+    <string name="custom_url_scheme">com.spicyroute.app</string>
+</resources>
