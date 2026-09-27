@@ -70,9 +70,18 @@ export default function AuthCallbackPage() {
 
           if (syncRes.token && syncRes.user) {
             if (setSession) setSession(syncRes.token, syncRes.user);
-          }
 
-          if (isMounted) {
+            // Role-based redirect
+            const role = syncRes.user.role;
+            const redirectPath = role === 'ADMIN' ? '/?view=admin'
+              : role === 'VENDOR' ? '/?view=vendor'
+              : '/';
+
+            if (isMounted) {
+              setStatus('success');
+              setTimeout(() => { window.location.href = redirectPath; }, 800);
+            }
+          } else if (isMounted) {
             setStatus('success');
             setTimeout(() => { window.location.href = '/'; }, 800);
           }

@@ -19,7 +19,16 @@ const isOAuthCallback = window.location.pathname === '/auth/callback' ||
 
 function MainApp() {
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState('storefront');
+
+  // Read ?view=admin or ?view=vendor from URL (set by OAuth callback)
+  const urlParams = new URLSearchParams(window.location.search);
+  const viewFromUrl = urlParams.get('view');
+
+  const [activeView, setActiveView] = useState(() => {
+    if (viewFromUrl === 'admin') return 'admin';
+    if (viewFromUrl === 'vendor') return 'vendor';
+    return 'storefront';
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeOrderForTracking, setActiveOrderForTracking] = useState(null);
   const [legalTitle, setLegalTitle] = useState('Terms & Conditions');
