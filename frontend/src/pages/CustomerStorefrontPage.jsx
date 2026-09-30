@@ -179,6 +179,11 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
       imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=300&auto=format&fit=crop&q=80'
     },
     {
+      id: 'Tiffins',
+      title: 'Tiffins',
+      imageUrl: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=300&auto=format&fit=crop&q=80'
+    },
+    {
       id: 'Noodle`s & FriedRice',
       title: 'Noodle`s & FriedRice',
       imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300&auto=format&fit=crop&q=80'
@@ -228,6 +233,8 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
     switch (selectedCategory) {
       case 'Birayani':
         return text.includes('biryani') || text.includes('birayani') || text.includes('rice') || text.includes('indian');
+      case 'Tiffins':
+        return text.includes('tiffin') || text.includes('dosa') || text.includes('idli') || text.includes('vada') || text.includes('wada') || text.includes('puri') || text.includes('poori') || text.includes('upma') || text.includes('breakfast') || text.includes('south indian') || text.includes('parotta') || text.includes('bhature') || text.includes('chole');
       case 'Noodle`s & FriedRice':
         return text.includes('noodle') || text.includes('fried rice') || text.includes('chinese') || text.includes('asian') || text.includes('rice');
       case 'Starters':

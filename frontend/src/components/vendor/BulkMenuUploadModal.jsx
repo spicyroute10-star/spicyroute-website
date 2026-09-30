@@ -9,6 +9,7 @@ import { fetchApi } from '../../api/client';
 // Category stock images for realistic storefront cards
 const CATEGORY_IMAGES = {
   Biryani: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80',
+  Tiffins: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80',
   Pizza: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80',
   Burgers: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80',
   Starters: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=600&auto=format&fit=crop&q=80',
@@ -20,12 +21,13 @@ const CATEGORY_IMAGES = {
 };
 
 const CATEGORIES = [
-  'Main', 'Starters', 'Biryani', 'Pizza', 'Burgers', 
+  'Tiffins', 'Main', 'Starters', 'Biryani', 'Pizza', 'Burgers', 
   'Snacks', 'Breads', 'Beverages', 'Desserts'
 ];
 
 function guessCategory(name, currentSection = 'Main') {
   const lower = name.toLowerCase();
+  if (/dosa|idli|vada|wada|puri|poori|upma|uttapam|parotta|tiffin|bhature|chole|poha|bonda/i.test(lower)) return 'Tiffins';
   if (/biryani|pulao|rice|fried\s*rice/i.test(lower)) return 'Biryani';
   if (/pizza/i.test(lower)) return 'Pizza';
   if (/burger|sandwich/i.test(lower)) return 'Burgers';
@@ -115,6 +117,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     // Helper to check if a string is a category header
     const detectCategoryHeader = (line) => {
       const u = line.toUpperCase();
+      if (/^(TIFFINS?|BREAKFAST|SOUTH\s*INDIAN|DOSAS?|IDLIS?)/i.test(u)) return 'Tiffins';
       if (/^(STARTERS?|APPETIZERS?|SOUPS?|TANDOOR)/i.test(u)) return 'Starters';
       if (/^(MAIN\s*COURSE|CURRIES|GRAVY|SPECIALS?|VEG\s*CURRIES|CHICKEN\s*CURRIES)/i.test(u)) return 'Main';
       if (/^(BIRYANI|RICE|PULAO|FRIED\s*RICE)/i.test(u)) return 'Biryani';

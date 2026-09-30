@@ -296,10 +296,12 @@ export default function MenuManagement({ menuItems = [], onRefresh }) {
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold mt-1"
                   >
                     <option value="Main">Main</option>
+                    <option value="Tiffins">Tiffins</option>
+                    <option value="Biryani">Biryani</option>
+                    <option value="Starters">Starters</option>
+                    <option value="Breads">Breads</option>
                     <option value="Burgers">Burgers</option>
                     <option value="Pizza">Pizza</option>
-                    <option value="Sushi">Sushi</option>
-                    <option value="Ramen">Ramen</option>
                     <option value="Sides">Sides</option>
                     <option value="Beverages">Beverages</option>
                     <option value="Desserts">Desserts</option>
