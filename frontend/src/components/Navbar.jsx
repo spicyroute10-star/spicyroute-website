@@ -3,12 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { 
   Home, Heart, ShoppingCart, FileText, Menu as MenuIcon, 
-  ShieldAlert, Store, User, LogOut, Flame, LayoutDashboard, Layers, UtensilsCrossed, Bike
+  ShieldAlert, Store, User, LogOut, Flame, LayoutDashboard, Layers, UtensilsCrossed, Bike, Smartphone
 } from 'lucide-react';
+import { usePwaInstall } from '../context/PwaInstallContext';
 
 export default function Navbar({ onOpenCart, activeView, setActiveView }) {
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
+  const { triggerInstall, isInstalled } = usePwaInstall();
 
   const isVendor = user?.role === 'VENDOR';
   const isAdmin = user?.role === 'ADMIN';
@@ -139,7 +141,19 @@ export default function Navbar({ onOpenCart, activeView, setActiveView }) {
           </nav>
 
           {/* Desktop Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+
+            {/* Install App Button (Visible when not in standalone mode) */}
+            {!isInstalled && (
+              <button
+                onClick={triggerInstall}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all shadow-2xs hover:scale-105 active:scale-95 cursor-pointer"
+                title="Add Food App to Home Screen"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-rose-600" />
+                <span>Install App</span>
+              </button>
+            )}
             
             {/* Customer Cart Button (Hidden for Vendor) */}
             {!isVendor && (

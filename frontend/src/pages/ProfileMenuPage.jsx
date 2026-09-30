@@ -3,11 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { 
   User, Star, ShoppingBag, Wallet, Sun, Moon, 
   MapPin, Settings, Ticket, UserCheck, Store, 
-  FileText, Shield, ChevronRight, LogOut, Layers, UtensilsCrossed, Bike, Check, X
+  FileText, Shield, ChevronRight, LogOut, Layers, UtensilsCrossed, Bike, Check, X, Smartphone
 } from 'lucide-react';
+import { usePwaInstall } from '../context/PwaInstallContext';
 
 export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCount = 2 }) {
   const { user, logout } = useAuth();
+  const { triggerInstall, isInstalled } = usePwaInstall();
   const isVendor = user?.role === 'VENDOR';
   const isAdmin = user?.role === 'ADMIN';
 
@@ -234,6 +236,32 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
                 </button>
               </>
             )}
+
+            {/* Permanent PWA Add to Home Screen Option */}
+            <button 
+              onClick={triggerInstall}
+              className="w-full p-4 flex items-center justify-between text-left hover:bg-rose-50/50 transition-colors group bg-gradient-to-r from-rose-50/20 to-transparent"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-extrabold text-gray-900">
+                      {isInstalled ? 'App Active on Device' : '📱 Add App to Home Screen'}
+                    </span>
+                    <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {isInstalled ? 'Installed' : 'Fast Order'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 font-semibold mt-0.5">
+                    {isInstalled ? 'Running in full-screen standalone app mode' : 'Order in 1 tap without typing URL in browser'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-rose-600 transition-colors" />
+            </button>
 
           </div>
         </div>

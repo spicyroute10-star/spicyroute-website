@@ -12,6 +12,9 @@ import BlankLegalPage from './pages/BlankLegalPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import { PwaInstallProvider } from './context/PwaInstallContext';
+import PwaInstallBanner from './components/pwa/PwaInstallBanner';
+import PwaInstallModal from './components/pwa/PwaInstallModal';
 
 // Keep Render backend alive — ping every 10 min to prevent free-tier sleep
 const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
@@ -205,6 +208,10 @@ function MainApp() {
       <footer className="bg-white border-t border-gray-200 py-6 text-center text-xs font-semibold text-gray-400 mt-12 pb-24">
         Spice Route Platform © 2026 • Real-Time Multi-Vendor Food Ordering Platform
       </footer>
+
+      {/* PWA Add to Home Screen Banner & Device Instruction Modal */}
+      <PwaInstallBanner activeView={activeView} />
+      <PwaInstallModal />
     </div>
   );
 }
@@ -222,7 +229,9 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <MainApp />
+        <PwaInstallProvider>
+          <MainApp />
+        </PwaInstallProvider>
       </CartProvider>
     </AuthProvider>
   );
