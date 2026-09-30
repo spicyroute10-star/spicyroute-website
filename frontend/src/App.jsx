@@ -13,6 +13,14 @@ import OrderTrackingPage from './pages/OrderTrackingPage';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 
+// Keep Render backend alive — ping every 10 min to prevent free-tier sleep
+const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+if (BACKEND_URL) {
+  const pingBackend = () => fetch(`${BACKEND_URL}/api/health`).catch(() => {});
+  pingBackend();
+  setInterval(pingBackend, 10 * 60 * 1000);
+}
+
 // Detect if Google OAuth is redirecting back to us
 const isOAuthCallback = window.location.pathname === '/auth/callback' ||
   window.location.pathname.startsWith('/auth/callback');
