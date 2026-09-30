@@ -5,7 +5,7 @@ import MetricsGrid from '../components/admin/MetricsGrid';
 import RestaurantPerformanceTable from '../components/admin/RestaurantPerformanceTable';
 import ReportDownloaderModal from '../components/admin/ReportDownloaderModal';
 import VendorOnboardingModal from '../components/admin/VendorOnboardingModal';
-import { Download, UserPlus, RefreshCw, Settings, ShieldAlert, Sparkles } from 'lucide-react';
+import { Download, UserPlus, RefreshCw, Settings, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState(null);
@@ -20,16 +20,38 @@ export default function AdminDashboardPage() {
     try {
       setLoading(true);
       const [statsRes, distRes] = await Promise.all([
-        fetchApi('/admin/dashboard-stats'),
-        fetchApi('/admin/orders-by-restaurant')
+        fetchApi('/admin/dashboard-stats').catch(e => ({ data: null })),
+        fetchApi('/admin/orders-by-restaurant').catch(e => ({ data: [] }))
       ]);
-      setStats(statsRes.data);
-      setDistribution(distRes.data);
-      if (statsRes.data?.globalCommissionRate) {
+      setStats(statsRes?.data || {
+        totalGMV: 0,
+        totalVendorPayouts: 0,
+        totalCommission: 0,
+        globalCommissionRate: 15,
+        totalOrders: 0,
+        activeOrdersCount: 0,
+        activeRestaurants: 0,
+        totalRestaurants: 0,
+        conversionRate: 0
+      });
+      setDistribution(Array.isArray(distRes?.data) ? distRes.data : []);
+      if (statsRes?.data?.globalCommissionRate) {
         setGlobalCommissionRate(statsRes.data.globalCommissionRate.toString());
       }
     } catch (err) {
       console.error('Error loading admin analytics:', err);
+      setStats(prev => prev || {
+        totalGMV: 0,
+        totalVendorPayouts: 0,
+        totalCommission: 0,
+        globalCommissionRate: 15,
+        totalOrders: 0,
+        activeOrdersCount: 0,
+        activeRestaurants: 0,
+        totalRestaurants: 0,
+        conversionRate: 0
+      });
+      setDistribution(prev => prev || []);
     } finally {
       setLoading(false);
     }
@@ -150,11 +172,18 @@ export default function AdminDashboardPage() {
         </form>
       </div>
 
-      {/* KPI Metrics Grid */}
-      <MetricsGrid stats={stats} />
-
-      {/* Restaurant Performance & Order Distribution Table */}
-      <RestaurantPerformanceTable distribution={distribution} onRefresh={loadData} />
+      {/* KPI Metrics Grid & Restaurant Distribution Table */}
+      {loading && !stats ? (
+        <div className="py-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-3xl border border-gray-100">
+          <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
+          <p className="text-xs font-bold text-gray-400">Loading admin metrics & distributions...</p>
+        </div>
+      ) : (
+        <>
+          <MetricsGrid stats={stats} />
+          <RestaurantPerformanceTable distribution={distribution} onRefresh={loadData} />
+        </>
+      )}
 
       {/* Modals */}
       <ReportDownloaderModal

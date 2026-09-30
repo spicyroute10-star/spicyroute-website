@@ -8,10 +8,11 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
   const [commissionRateInput, setCommissionRateInput] = useState('');
   const [updating, setUpdating] = useState(false);
 
-  const filtered = distribution.filter(r =>
-    r.restaurantName.toLowerCase().includes(search.toLowerCase()) ||
-    r.cuisine.toLowerCase().includes(search.toLowerCase()) ||
-    r.ownerName.toLowerCase().includes(search.toLowerCase())
+  const safeDistribution = Array.isArray(distribution) ? distribution : [];
+  const filtered = safeDistribution.filter(r =>
+    String(r?.restaurantName || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(r?.cuisine || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(r?.ownerName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const handleToggleStatus = async (restaurantId, currentApproval, currentOpen) => {
@@ -102,17 +103,17 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
-                <tr key={r.restaurantId} className="hover:bg-rose-50/30 transition-colors">
+              filtered.map((r, idx) => (
+                <tr key={r?.restaurantId || r?.id || idx} className="hover:bg-rose-50/30 transition-colors">
                   {/* Name */}
                   <td className="py-4 px-6">
-                    <div className="font-extrabold text-gray-900 text-sm">{r.restaurantName}</div>
-                    <div className="text-[11px] text-gray-400 font-semibold">{r.cuisine} • Owner: {r.ownerName} ({r.ownerEmail})</div>
+                    <div className="font-extrabold text-gray-900 text-sm">{r?.restaurantName || 'Unnamed Restaurant'}</div>
+                    <div className="text-[11px] text-gray-400 font-semibold">{r?.cuisine || 'General'} • Owner: {r?.ownerName || 'Unknown'} ({r?.ownerEmail || 'No email'})</div>
                   </td>
 
                   {/* Status Badge */}
                   <td className="py-4 px-4 text-center">
-                    {r.isApproved ? (
+                    {r?.isApproved ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
                         <CheckCircle className="w-3 h-3 text-emerald-600" /> Approved
                       </span>
@@ -125,12 +126,12 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
 
                   {/* Total Orders */}
                   <td className="py-4 px-4 text-center font-extrabold text-gray-900 text-sm">
-                    {r.totalOrders}
+                    {Number(r?.totalOrders || 0)}
                   </td>
 
                   {/* Active Orders */}
                   <td className="py-4 px-4 text-center">
-                    {r.activeOrders > 0 ? (
+                    {Number(r?.activeOrders || 0) > 0 ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
                         {r.activeOrders} active
                       </span>
@@ -141,12 +142,12 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
 
                   {/* Revenue GMV */}
                   <td className="py-4 px-4 text-right font-extrabold text-gray-900 text-sm">
-                    ₹{r.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹{Number(r?.totalRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
 
                   {/* Commission Rate (%) */}
                   <td className="py-4 px-4 text-center">
-                    {editingId === r.restaurantId ? (
+                    {editingId === r?.restaurantId ? (
                       <div className="flex items-center justify-center gap-1">
                         <input
                           type="number"
@@ -156,7 +157,7 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
                           className="w-16 px-1.5 py-1 border border-rose-300 rounded text-center text-xs font-bold focus:outline-none"
                         />
                         <button
-                          onClick={() => handleSaveCommission(r.restaurantId)}
+                          onClick={() => handleSaveCommission(r?.restaurantId)}
                           disabled={updating}
                           className="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold"
                         >
@@ -165,11 +166,11 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-1 font-bold text-gray-800">
-                        <span>{r.commissionRate}%</span>
+                        <span>{Number(r?.commissionRate ?? 15)}%</span>
                         <button
                           onClick={() => {
-                            setEditingId(r.restaurantId);
-                            setCommissionRateInput(r.commissionRate.toString());
+                            setEditingId(r?.restaurantId);
+                            setCommissionRateInput((r?.commissionRate ?? 15).toString());
                           }}
                           className="text-gray-400 hover:text-rose-600 p-0.5"
                           title="Edit Commission Rate"
@@ -182,21 +183,21 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
 
                   {/* Platform Earned */}
                   <td className="py-4 px-4 text-right font-extrabold text-rose-600 text-sm">
-                    ₹{r.commissionEarned.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹{Number(r?.commissionEarned || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
 
                   {/* Admin Action */}
                   <td className="py-4 px-6 text-center">
                     <button
-                      onClick={() => handleToggleStatus(r.restaurantId, r.isApproved, r.isOpen)}
+                      onClick={() => handleToggleStatus(r?.restaurantId, r?.isApproved, r?.isOpen)}
                       disabled={updating}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                        r.isApproved
+                        r?.isApproved
                           ? 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200'
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
                       }`}
                     >
-                      {r.isApproved ? 'Suspend Vendor' : 'Approve Vendor'}
+                      {r?.isApproved ? 'Suspend Vendor' : 'Approve Vendor'}
                     </button>
                   </td>
                 </tr>

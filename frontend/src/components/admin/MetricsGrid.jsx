@@ -4,11 +4,21 @@ import { DollarSign, ShoppingBag, Store, TrendingUp, Percent } from 'lucide-reac
 export default function MetricsGrid({ stats }) {
   if (!stats) return null;
 
+  const totalGMV = Number(stats.totalGMV || 0);
+  const totalVendorPayouts = Number(stats.totalVendorPayouts || 0);
+  const totalCommission = Number(stats.totalCommission || 0);
+  const globalCommissionRate = stats.globalCommissionRate ?? 15;
+  const totalOrders = stats.totalOrders || 0;
+  const activeOrdersCount = stats.activeOrdersCount || 0;
+  const activeRestaurants = stats.activeRestaurants || 0;
+  const totalRestaurants = stats.totalRestaurants || 0;
+  const conversionRate = stats.conversionRate ?? 0;
+
   const cards = [
     {
       title: 'Total Gross Volume (GMV)',
-      value: `₹${stats.totalGMV.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      subtitle: `Payouts: ₹${stats.totalVendorPayouts.toFixed(2)}`,
+      value: `₹${totalGMV.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      subtitle: `Payouts: ₹${totalVendorPayouts.toFixed(2)}`,
       icon: DollarSign,
       color: 'bg-emerald-500',
       textColor: 'text-emerald-600',
@@ -16,8 +26,8 @@ export default function MetricsGrid({ stats }) {
     },
     {
       title: 'Platform Commission Earned',
-      value: `₹${stats.totalCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      subtitle: `Global Rate: ${stats.globalCommissionRate}%`,
+      value: `₹${totalCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      subtitle: `Global Rate: ${globalCommissionRate}%`,
       icon: TrendingUp,
       color: 'bg-rose-500',
       textColor: 'text-rose-600',
@@ -25,8 +35,8 @@ export default function MetricsGrid({ stats }) {
     },
     {
       title: 'Total Orders Processed',
-      value: stats.totalOrders,
-      subtitle: `${stats.activeOrdersCount} Currently Active`,
+      value: totalOrders,
+      subtitle: `${activeOrdersCount} Currently Active`,
       icon: ShoppingBag,
       color: 'bg-blue-500',
       textColor: 'text-blue-600',
@@ -34,7 +44,7 @@ export default function MetricsGrid({ stats }) {
     },
     {
       title: 'Active Restaurants',
-      value: `${stats.activeRestaurants} / ${stats.totalRestaurants}`,
+      value: `${activeRestaurants} / ${totalRestaurants}`,
       subtitle: 'Online Vendors',
       icon: Store,
       color: 'bg-amber-500',
@@ -43,7 +53,7 @@ export default function MetricsGrid({ stats }) {
     },
     {
       title: 'Fulfillment Rate',
-      value: `${stats.conversionRate}%`,
+      value: `${conversionRate}%`,
       subtitle: 'Delivered Ratio',
       icon: Percent,
       color: 'bg-indigo-500',
@@ -53,19 +63,21 @@ export default function MetricsGrid({ stats }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-      {cards.map((card, idx) => {
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {cards.map((card, i) => {
         const Icon = card.icon;
         return (
-          <div key={idx} className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] sm:text-xs font-extrabold text-gray-400 uppercase tracking-wider line-clamp-1">{card.title}</span>
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${card.bgColor} ${card.textColor} flex items-center justify-center font-bold flex-shrink-0`}>
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-500">{card.title}</span>
+              <div className={`p-2 rounded-xl ${card.bgColor} ${card.textColor}`}>
+                <Icon className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">{card.value}</div>
-            <div className="text-[10px] sm:text-xs font-semibold text-gray-400 mt-0.5 truncate">{card.subtitle}</div>
+            <div>
+              <div className="text-xl font-black text-gray-900">{card.value}</div>
+              <div className="text-[11px] font-semibold text-gray-400 mt-0.5">{card.subtitle}</div>
+            </div>
           </div>
         );
       })}

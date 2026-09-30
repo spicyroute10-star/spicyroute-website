@@ -167,9 +167,9 @@ export default function ReportDownloaderModal({ isOpen, onClose, restaurants = [
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
             >
               <option value="ALL">🌐 All Restaurants (Platform Global)</option>
-              {restaurants.map((r) => (
-                <option key={r.restaurantId} value={r.restaurantId}>
-                  🏬 {r.restaurantName} ({r.cuisine})
+              {(Array.isArray(restaurants) ? restaurants : []).map((r, idx) => (
+                <option key={r?.restaurantId || r?.id || idx} value={r?.restaurantId || r?.id}>
+                  🏬 {r?.restaurantName || 'Unnamed'} ({r?.cuisine || 'General'})
                 </option>
               ))}
             </select>
