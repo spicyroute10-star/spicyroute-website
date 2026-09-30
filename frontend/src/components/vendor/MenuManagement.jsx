@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Utensils, Check, X, AlertCircle, Upload, Zap } from 'lucide-react';
+import { Plus, Edit2, Trash2, Utensils, Check, X, AlertCircle, Upload, Zap, Camera } from 'lucide-react';
 import { fetchApi } from '../../api/client';
 import BulkMenuUploadModal from './BulkMenuUploadModal';
 
@@ -131,7 +131,7 @@ export default function MenuManagement({ menuItems = [], onRefresh }) {
             onClick={() => setIsBulkModalOpen(true)}
             className="bg-gray-900 hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
           >
-            <Upload className="w-4 h-4 text-rose-400" /> Upload Menu (CSV / File)
+            <Camera className="w-4 h-4 text-rose-400" /> Upload Menu Card Photo / CSV
           </button>
 
           {/* Add Item Button */}
