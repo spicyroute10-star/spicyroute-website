@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Upload, Camera, FileSpreadsheet, Download, X, CheckCircle, 
-  AlertCircle, Trash2, Plus, Loader2, Image as ImageIcon, Sparkles, RefreshCw, Layers
+  AlertCircle, Trash2, Plus, Loader2, Image as ImageIcon, Sparkles, RefreshCw, Layers, Edit3, Wand2, Search
 } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import { fetchApi } from '../../api/client';
@@ -26,113 +26,233 @@ const CATEGORIES = [
 
 function guessCategory(name, currentSection = 'Main') {
   const lower = name.toLowerCase();
-  if (/biryani|pulao|rice/i.test(lower)) return 'Biryani';
+  if (/biryani|pulao|rice|fried\s*rice/i.test(lower)) return 'Biryani';
   if (/pizza/i.test(lower)) return 'Pizza';
-  if (/burger/i.test(lower)) return 'Burgers';
-  if (/naan|roti|kulcha|paratha|bread/i.test(lower)) return 'Breads';
-  if (/tikka|kebab|fry|wings|starter|chilli|manchurian/i.test(lower)) return 'Starters';
-  if (/shake|lassi|juice|coffee|tea|soda|mojito|coke|beverage|drink/i.test(lower)) return 'Beverages';
-  if (/ice cream|halwa|jamun|cake|brownie|dessert|sweet/i.test(lower)) return 'Desserts';
-  if (/fries|roll|samosa|momos|chips|snack/i.test(lower)) return 'Snacks';
+  if (/burger|sandwich/i.test(lower)) return 'Burgers';
+  if (/naan|roti|kulcha|paratha|bread|chapati/i.test(lower)) return 'Breads';
+  if (/tikka|kebab|fry|wings|starter|chilli|manchurian|65|lollipop|crispy|soup/i.test(lower)) return 'Starters';
+  if (/shake|lassi|juice|coffee|tea|soda|mojito|coke|beverage|drink|water|cooler/i.test(lower)) return 'Beverages';
+  if (/ice\s*cream|halwa|jamun|cake|brownie|dessert|sweet|kheer|rasgulla/i.test(lower)) return 'Desserts';
+  if (/fries|roll|samosa|momos|chips|snack|pakoda|chaat|maggi/i.test(lower)) return 'Snacks';
   return currentSection;
 }
 
+// Canvas-based image preprocessor: sharpens phone photos & increases contrast for high OCR accuracy
+function preprocessImage(file) {
+  return new Promise((resolve) => {
+    if (!file || !file.type.startsWith('image/')) return resolve(file);
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+
+        // Resize if too huge or too small for optimal Tesseract performance
+        const maxDim = Math.max(img.width, img.height);
+        const scale = Math.max(1, Math.min(2.5, 2200 / maxDim));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imgData.data;
+
+        // Grayscale conversion and high-contrast thresholding
+        for (let i = 0; i < d.length; i += 4) {
+          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          // S-curve contrast enhancement to separate dark ink from paper
+          const enhanced = gray < 135 
+            ? (gray * gray) / 135 
+            : Math.min(255, 135 + (gray - 135) * 1.4);
+          d[i] = enhanced;
+          d[i + 1] = enhanced;
+          d[i + 2] = enhanced;
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        canvas.toBlob((blob) => {
+          resolve(blob || file);
+        }, 'image/jpeg', 0.95);
+      } catch (err) {
+        resolve(file);
+      }
+    };
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+}
+
 export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
-  const [tab, setTab] = useState('photo'); // 'photo' | 'csv'
+  const [tab, setTab] = useState('photo'); // 'photo' | 'editor' | 'csv'
   const [parsedItems, setParsedItems] = useState([]);
   const [rawText, setRawText] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanningPageText, setScanningPageText] = useState('');
-  const [uploadedPhotos, setUploadedPhotos] = useState([]); // array of { file, preview, name }
+  const [uploadedPhotos, setUploadedPhotos] = useState([]); // array of { file, preview, name, id }
   const [fileName, setFileName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [showRawText, setShowRawText] = useState(false);
 
   if (!isOpen) return null;
 
   // Smart parser to extract dishes & prices from OCR text
   const parseMenuCardText = (text) => {
     setErrorMsg('');
-    // Remove binary or non-printable junk
-    const cleanedText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFD]/g, '');
-    const lines = cleanedText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!text) return [];
+
+    // Clean non-printable / binary characters
+    const clean = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFD]/g, '');
+    const rawLines = clean.split('\n').map(l => l.trim()).filter(Boolean);
     const items = [];
     let currentCategory = 'Main';
 
-    for (const rawLine of lines) {
-      if (/^(menu|food menu|restaurant|welcome|contact|phone|tel|gst|page\s*\d+|price|rate|items?|sr\s*no)/i.test(rawLine)) {
+    // Helper to check if a string is a category header
+    const detectCategoryHeader = (line) => {
+      const u = line.toUpperCase();
+      if (/^(STARTERS?|APPETIZERS?|SOUPS?|TANDOOR)/i.test(u)) return 'Starters';
+      if (/^(MAIN\s*COURSE|CURRIES|GRAVY|SPECIALS?|VEG\s*CURRIES|CHICKEN\s*CURRIES)/i.test(u)) return 'Main';
+      if (/^(BIRYANI|RICE|PULAO|FRIED\s*RICE)/i.test(u)) return 'Biryani';
+      if (/^(PIZZAS?)/i.test(u)) return 'Pizza';
+      if (/^(BURGERS?|SANDWICH(?:ES)?)/i.test(u)) return 'Burgers';
+      if (/^(BREADS?|ROTIS?|NAANS?|PARATHAS?)/i.test(u)) return 'Breads';
+      if (/^(BEVERAGES?|DRINKS?|SHAKES?|JUICES?|HOT\s*&\s*COLD|COOL\s*DRINKS?|TEA|COFFEE)/i.test(u)) return 'Beverages';
+      if (/^(DESSERTS?|SWEETS?|ICE\s*CREAMS?)/i.test(u)) return 'Desserts';
+      if (/^(SNACKS?|FAST\s*FOOD|CHAAT|NOODLES|MOMOS?)/i.test(u)) return 'Snacks';
+      return null;
+    };
+
+    const isPurePrice = (str) => {
+      return /^(?:₹|Rs\.?|INR|\$)?\s*\d{2,5}(?:\.\d{1,2})?\s*(?:\/-)?$/i.test(str.trim());
+    };
+
+    const cleanDishName = (str) => {
+      return str
+        .replace(/^[\d.)\s•\-:–—]+/, '') // Remove leading numbers like "1.", "02)"
+        .replace(/[.\-_:~|•\t+=—–]+$/g, '') // Remove trailing dots or dashes
+        .replace(/^(HALF|FULL|REGULAR|LARGE|SMALL)\b\s*/i, '')
+        .trim();
+    };
+
+    // First pass: combine line i (dish name) with line i+1 (if line i+1 is strictly a price)
+    const combinedLines = [];
+    for (let i = 0; i < rawLines.length; i++) {
+      let current = rawLines[i];
+      const next = rawLines[i + 1];
+
+      // Fix OCR numbers: replace capital O with 0 if surrounded by digits (e.g. 18O -> 180, 2OO -> 200)
+      current = current.replace(/(\d)[Oo]/g, '$10').replace(/[Oo](\d)/g, '0$1');
+
+      if (/^(menu|food menu|restaurant|welcome|contact|phone|tel|gst|page\s*\d+|price|rate|items?|sr\s*no|half\s*full)/i.test(current)) {
         continue;
       }
 
-      const cleanUpper = rawLine.toUpperCase();
-      if (/^(STARTERS|APPETIZERS|SOUPS)/i.test(cleanUpper)) {
-        currentCategory = 'Starters';
-        continue;
-      }
-      if (/^(MAIN COURSE|CURRIES|GRAVY)/i.test(cleanUpper)) {
-        currentCategory = 'Main';
-        continue;
-      }
-      if (/^(BIRYANI|RICE)/i.test(cleanUpper)) {
-        currentCategory = 'Biryani';
-        continue;
-      }
-      if (/^(PIZZA|PIZZAS)/i.test(cleanUpper)) {
-        currentCategory = 'Pizza';
-        continue;
-      }
-      if (/^(BURGERS|BURGER|SANDWICH)/i.test(cleanUpper)) {
-        currentCategory = 'Burgers';
-        continue;
-      }
-      if (/^(BREADS|ROTI|NAAN)/i.test(cleanUpper)) {
-        currentCategory = 'Breads';
-        continue;
-      }
-      if (/^(BEVERAGES|DRINKS|SHAKES|COLD DRINKS)/i.test(cleanUpper)) {
-        currentCategory = 'Beverages';
-        continue;
-      }
-      if (/^(DESSERTS|SWEETS|ICE CREAM)/i.test(cleanUpper)) {
-        currentCategory = 'Desserts';
-        continue;
-      }
-      if (/^(SNACKS|FAST FOOD|CHIPS)/i.test(cleanUpper)) {
-        currentCategory = 'Snacks';
+      const catHeader = detectCategoryHeader(current);
+      if (catHeader) {
+        combinedLines.push({ type: 'header', category: catHeader });
         continue;
       }
 
-      // Pattern 1: Trailing price (e.g. "Chicken Biryani 250", "Paneer Tikka ₹ 180/-", "Cold Drink ... 40")
-      const trailingPriceRegex = /(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i;
-      // Pattern 2: Leading price (e.g. "250 Chicken Biryani", "₹ 180 Paneer Butter Masala")
-      const leadingPriceRegex = /^(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*[:\-\s]\s*(.+)$/i;
-      // Pattern 3: Separator price (e.g. "Chicken Biryani : 250" or "Mutton Sukka - 340")
-      const middlePriceRegex = /[:\-—|]\s*(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i;
+      // If current line has letters and no price digits, but next line is JUST a price, merge them!
+      if (!/\d{2,5}/.test(current) && next && isPurePrice(next)) {
+        combinedLines.push({ type: 'item', line: `${current} ${next}` });
+        i++; // skip next line because it's merged
+        continue;
+      }
+
+      combinedLines.push({ type: 'item', line: current });
+    }
+
+    // Second pass: Parse items from combined lines
+    for (const entry of combinedLines) {
+      if (entry.type === 'header') {
+        currentCategory = entry.category;
+        continue;
+      }
+
+      const line = entry.line;
+
+      // Check if line contains TWO prices (Half and Full, e.g. "Chicken Biryani 140 240" or "Chicken Biryani 140 / 240")
+      const multiPriceMatch = line.match(/^(.+?)\s+(\d{2,4})\s*(?:\/|\s+)\s*(\d{2,4})\s*$/);
+      if (multiPriceMatch) {
+        const dishBase = cleanDishName(multiPriceMatch[1]);
+        const halfPrice = parseFloat(multiPriceMatch[2]);
+        const fullPrice = parseFloat(multiPriceMatch[3]);
+        if (dishBase.length >= 2 && /[a-zA-Z]/.test(dishBase)) {
+          const category = guessCategory(dishBase, currentCategory);
+          items.push({
+            name: `${dishBase} (Half)`,
+            price: halfPrice,
+            category,
+            description: `Freshly prepared half portion of ${dishBase}`,
+            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            isAvailable: true
+          });
+          items.push({
+            name: `${dishBase} (Full)`,
+            price: fullPrice,
+            category,
+            description: `Freshly prepared full portion of ${dishBase}`,
+            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            isAvailable: true
+          });
+          continue;
+        }
+      }
+
+      // Check if line contains multiple dishes side-by-side (e.g. "Tea 15 Coffee 25" or "Veg Fried Rice 120 Egg Fried Rice 140")
+      const segmentRegex = /([A-Za-z\s()&'-]+?)\s*(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?(?=\s+[A-Za-z]|$)/g;
+      let segMatch;
+      let matchedSegments = [];
+      while ((segMatch = segmentRegex.exec(line)) !== null) {
+        const segName = cleanDishName(segMatch[1]);
+        const segPrice = parseFloat(segMatch[2]);
+        if (segName.length >= 2 && /[a-zA-Z]/.test(segName) && segPrice > 0 && segPrice < 50000) {
+          matchedSegments.push({ name: segName, price: segPrice });
+        }
+      }
+
+      if (matchedSegments.length > 1) {
+        for (const seg of matchedSegments) {
+          const category = guessCategory(seg.name, currentCategory);
+          items.push({
+            name: seg.name,
+            price: seg.price,
+            category,
+            description: `Freshly prepared ${seg.name}`,
+            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            isAvailable: true
+          });
+        }
+        continue;
+      }
+
+      // Standard single dish line:
+      const trailingMatch = line.match(/(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i);
+      const leadingMatch = line.match(/^(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*[:\-\s]\s*(.+)$/i);
+      const middleMatch = line.match(/[:\-—|]\s*(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i);
 
       let name = '';
       let price = 0;
 
-      const trailMatch = rawLine.match(trailingPriceRegex);
-      const leadMatch = rawLine.match(leadingPriceRegex);
-      const midMatch = rawLine.match(middlePriceRegex);
-
-      if (trailMatch && trailMatch.index > 2) {
-        price = parseFloat(trailMatch[1]);
-        name = rawLine.slice(0, trailMatch.index).replace(/[.\-_:~|•\t]+$/g, '').trim();
-      } else if (midMatch) {
-        price = parseFloat(midMatch[1]);
-        name = rawLine.slice(0, midMatch.index).trim();
-      } else if (leadMatch) {
-        price = parseFloat(leadMatch[1]);
-        name = leadMatch[2].trim();
+      if (trailingMatch && trailingMatch.index > 2) {
+        price = parseFloat(trailingMatch[1]);
+        name = line.slice(0, trailingMatch.index);
+      } else if (middleMatch) {
+        price = parseFloat(middleMatch[1]);
+        name = line.slice(0, middleMatch.index);
+      } else if (leadingMatch) {
+        price = parseFloat(leadingMatch[1]);
+        name = leadingMatch[2];
       }
 
-      // Clean up item name
-      name = name.replace(/^[\d.)\s•\-]+/, '').replace(/[.\-_:~|•\t]+$/g, '').trim();
+      name = cleanDishName(name);
 
-      // Only accept names that contain letters and are reasonable
       if (name.length >= 2 && /[a-zA-Z]/.test(name) && !isNaN(price) && price > 0 && price < 50000) {
         const category = guessCategory(name, currentCategory);
         items.push({
@@ -173,20 +293,24 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const pageIndex = uploadedPhotos.length + i + 1;
-      setScanningPageText(`Scanning Page ${pageIndex} of ${allPhotos.length}: ${file.name}...`);
-      setScanProgress(0);
+      setScanningPageText(`Preprocessing & Scanning Page ${pageIndex} of ${allPhotos.length}: ${file.name}...`);
+      setScanProgress(5);
 
       try {
-        const result = await Tesseract.recognize(file, 'eng', {
+        // High-contrast preprocess to optimize for camera phone captures
+        const enhancedBlob = await preprocessImage(file);
+        setScanProgress(15);
+
+        const result = await Tesseract.recognize(enhancedBlob, 'eng', {
           logger: (m) => {
             if (m.status === 'recognizing text') {
-              setScanProgress(Math.round((m.progress || 0) * 100));
+              setScanProgress(15 + Math.round((m.progress || 0) * 85));
             }
           }
         });
 
         const extracted = result.data.text || '';
-        accumulatedText += `\n--- PAGE ${pageIndex} (${file.name}) ---\n` + extracted;
+        accumulatedText += (accumulatedText ? '\n\n' : '') + `--- PAGE ${pageIndex} (${file.name}) ---\n` + extracted;
         
         const newDishes = parseMenuCardText(extracted);
         // Avoid duplicate items by lowercase name
@@ -208,13 +332,27 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     setScanningPageText('');
 
     if (allDishes.length === 0) {
-      setErrorMsg('Could not detect distinct dishes from the uploaded photo(s). You can review or edit the extracted text below.');
-      setShowRawText(true);
+      setErrorMsg('Could not detect distinct dishes from the photo. Click "✏️ View & Edit OCR Text" below to review or format the scanned text.');
+      setTab('editor');
     }
   };
 
   const handleRemovePhoto = (id) => {
     setUploadedPhotos(prev => prev.filter(p => p.id !== id));
+  };
+
+  // Auto Clean OCR Text
+  const handleAutoCleanText = () => {
+    let cleaned = rawText
+      .replace(/[•·—–_]{2,}/g, ' ') // remove dot-leaders like ........
+      .replace(/[|\\]/g, ' ') // remove pipe/backslash separators
+      .replace(/\s{2,}/g, ' ') // collapse multi-spaces
+      .replace(/(\d+)\s*\/\s*-\s*/g, '$1 ') // clean 180/- to 180
+      .replace(/Rs\.?\s*/gi, '₹'); // normalize Rs. to ₹
+
+    setRawText(cleaned);
+    const updatedDishes = parseMenuCardText(cleaned);
+    setParsedItems(updatedDishes);
   };
 
   // CSV Template download
@@ -232,7 +370,6 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
 
   const parseCSVText = (text) => {
     setErrorMsg('');
-    // Guard against binary image contents being parsed as CSV text
     if (text.includes('JFIF') || text.includes('Exif') || /[\x00-\x08\x0E-\x1F]/.test(text.slice(0, 200))) {
       setErrorMsg('This file is an image (JPG/PNG), not a CSV. Please use the "Upload Menu Photos" tab to scan it with AI OCR.');
       return [];
@@ -273,7 +410,6 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // If an image is selected in the CSV input, automatically switch tab & run OCR!
     if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp|gif|tiff)$/i.test(file.name)) {
       setTab('photo');
       handleMultiplePhotosUpload(e);
@@ -310,7 +446,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     setParsedItems(prev => [
       ...prev,
       {
-        name: 'New Dish',
+        name: 'New Special Dish',
         price: 150,
         category: 'Main',
         description: 'Chef special dish',
@@ -343,20 +479,25 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
+  const filteredItems = parsedItems.filter(item => 
+    item.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-2xl w-full my-auto p-6 shadow-2xl border border-gray-100 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl max-w-2xl w-full my-auto p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
               <Camera className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-gray-900">Multi-Page Menu Card Photo & Importer</h3>
+              <h3 className="text-lg font-extrabold text-gray-900">Multi-Page Menu Card Scanner</h3>
               <p className="text-xs font-semibold text-gray-400">
-                Upload one or multiple JPG/PNG menu photos to automatically extract dishes across all pages
+                Upload JPG/PNG menu photos to extract dishes and prices automatically
               </p>
             </div>
           </div>
@@ -365,43 +506,51 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Tab Switcher: Photo Card vs CSV */}
+        {/* Tab Switcher: Photos vs Text Editor vs CSV */}
         <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200">
           <button
             type="button"
             onClick={() => setTab('photo')}
-            className={`flex-1 py-2.5 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition-all ${
               tab === 'photo' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            <Camera className="w-4 h-4" />
-            <span>📸 Upload Menu Photos / JPGs ({uploadedPhotos.length} pages)</span>
+            <Camera className="w-3.5 h-3.5" />
+            <span>📸 Scan Photos ({uploadedPhotos.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('editor')}
+            className={`flex-1 py-2 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              tab === 'editor' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>✏️ Edit OCR Text</span>
           </button>
           <button
             type="button"
             onClick={() => setTab('csv')}
-            className={`flex-1 py-2.5 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition-all ${
               tab === 'csv' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>📄 CSV / Excel Spreadsheet</span>
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>📄 CSV</span>
           </button>
         </div>
 
-        {/* PHOTO OCR MULTI-PAGE UPLOAD VIEW */}
+        {/* TAB 1: PHOTO OCR SCANNER */}
         {tab === 'photo' && (
-          <div className="space-y-4">
-            
-            {/* Upload Area / Dropzone */}
-            <label className="border-2 border-dashed border-rose-300 hover:border-rose-500 bg-rose-50/40 hover:bg-rose-50/70 rounded-3xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all text-center group">
-              <div className="w-14 h-14 rounded-2xl bg-white text-rose-600 flex items-center justify-center shadow-md mb-3 group-hover:scale-110 transition-transform">
-                <Camera className="w-7 h-7" />
+          <div className="space-y-3">
+            <label className="border-2 border-dashed border-rose-300 hover:border-rose-500 bg-rose-50/40 hover:bg-rose-50/70 rounded-3xl p-5 flex flex-col items-center justify-center cursor-pointer transition-all text-center group">
+              <div className="w-12 h-12 rounded-2xl bg-white text-rose-600 flex items-center justify-center shadow-md mb-2 group-hover:scale-105 transition-transform">
+                <Camera className="w-6 h-6" />
               </div>
               <span className="text-sm font-black text-gray-900">
-                {uploadedPhotos.length > 0 ? '+ Click to Add More Menu Card Photos / Pages' : 'Click to Upload Menu Card Photos (JPG / PNG)'}
+                {uploadedPhotos.length > 0 ? '+ Click to Add More Menu Card Photos' : 'Click to Upload Menu Card Photos (JPG / PNG)'}
               </span>
-              <span className="text-xs text-rose-600 font-bold mt-1">
+              <span className="text-xs text-rose-600 font-bold mt-0.5">
                 You can select multiple JPG images at once (Page 1, Page 2, Front & Back)
               </span>
               <span className="text-[10px] text-gray-400 font-semibold mt-0.5">
@@ -417,13 +566,13 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
               />
             </label>
 
-            {/* OCR Processing Progress Bar */}
+            {/* Live Scanning Progress */}
             {scanning && (
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-2">
+              <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-purple-900">
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                    {scanningPageText || 'Reading menu card with AI OCR...'}
+                    {scanningPageText || 'Scanning menu photo with AI OCR...'}
                   </span>
                   <span>{scanProgress}%</span>
                 </div>
@@ -436,16 +585,16 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Multi-Photo Thumbnails Gallery */}
+            {/* Thumbnail Gallery */}
             {uploadedPhotos.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-extrabold text-gray-700">
                   <span className="flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-rose-600" />
+                    <Layers className="w-3.5 h-3.5 text-rose-600" />
                     Uploaded Menu Pages ({uploadedPhotos.length} photos)
                   </span>
                   <label className="text-rose-600 hover:text-rose-700 font-bold cursor-pointer text-[11px] underline">
-                    + Add More Pages
+                    + Add More Photos
                     <input
                       type="file"
                       accept="image/*,.jpg,.jpeg,.png,.webp"
@@ -457,20 +606,20 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
                   </label>
                 </div>
 
-                <div className="flex items-center gap-2.5 overflow-x-auto pb-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1.5">
                   {uploadedPhotos.map((photo, pIdx) => (
-                    <div key={photo.id || pIdx} className="relative flex-shrink-0 group w-20 h-24 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-xs">
+                    <div key={photo.id || pIdx} className="relative flex-shrink-0 group w-18 h-22 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-xs">
                       <img src={photo.preview} alt={`Page ${pIdx + 1}`} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-between p-1.5">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-between p-1">
                         <button
                           type="button"
                           onClick={() => handleRemovePhoto(photo.id)}
                           className="self-end p-0.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors"
-                          title="Remove this photo"
+                          title="Remove photo"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
-                        <span className="text-[10px] font-black text-white text-center">
+                        <span className="text-[9px] font-black text-white text-center">
                           Page {pIdx + 1}
                         </span>
                       </div>
@@ -479,68 +628,74 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
                 </div>
               </div>
             )}
-
-            {/* Raw Text Toggle */}
-            {rawText && !scanning && (
-              <div className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs">
-                <span className="text-[11px] text-gray-500 font-semibold">
-                  OCR extracted text from {uploadedPhotos.length} page(s)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowRawText(!showRawText)}
-                  className="px-2.5 py-1 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg font-bold text-[10px] transition-colors"
-                >
-                  {showRawText ? 'Hide Raw OCR Text' : 'View Raw OCR Text'}
-                </button>
-              </div>
-            )}
-
-            {showRawText && (
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                  Combined Extracted OCR Text:
-                </label>
-                <textarea
-                  rows="4"
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"
-                ></textarea>
-                <button
-                  type="button"
-                  onClick={() => setParsedItems(parseMenuCardText(rawText))}
-                  className="mt-1.5 px-3 py-1 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black"
-                >
-                  Re-parse Dishes from Text
-                </button>
-              </div>
-            )}
           </div>
         )}
 
-        {/* CSV SPREADSHEET VIEW */}
+        {/* TAB 2: OCR TEXT EDITOR & AUTO-CLEAN */}
+        {tab === 'editor' && (
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                <Edit3 className="w-3.5 h-3.5 text-rose-600" />
+                Raw OCR Text (Edit or paste menu text here):
+              </span>
+              <button
+                type="button"
+                onClick={handleAutoCleanText}
+                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-extrabold flex items-center gap-1 transition-all"
+                title="Fixes OCR dots, dashes, and currency formatting automatically"
+              >
+                <Wand2 className="w-3 h-3 text-amber-600" />
+                Auto-Clean OCR Text
+              </button>
+            </div>
+
+            <textarea
+              rows="6"
+              value={rawText}
+              onChange={(e) => {
+                setRawText(e.target.value);
+                setParsedItems(parseMenuCardText(e.target.value));
+              }}
+              placeholder={`Paste or edit your menu text here. Example format:\nButter Chicken 280\nPaneer Tikka 160\nChicken Biryani 240\nGarlic Naan 50`}
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed"
+            ></textarea>
+
+            <div className="flex items-center justify-between text-[11px] text-gray-500 font-semibold px-1">
+              <span>💡 Format: <strong>Dish Name Price</strong> (e.g. <code>Butter Chicken 280</code>)</span>
+              <button
+                type="button"
+                onClick={() => setParsedItems(parseMenuCardText(rawText))}
+                className="px-3 py-1 bg-gray-900 text-white rounded-lg font-bold text-[11px] hover:bg-black transition-colors"
+              >
+                Re-Parse List
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: CSV SPREADSHEET */}
         {tab === 'csv' && (
-          <div className="space-y-4">
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <FileSpreadsheet className="w-6 h-6 text-rose-600 flex-shrink-0" />
+          <div className="space-y-3">
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <FileSpreadsheet className="w-5 h-5 text-rose-600 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-extrabold text-gray-900">Need a CSV template format?</div>
-                  <div className="text-[11px] text-gray-500 font-semibold">Download sample CSV with name, price, category headers</div>
+                  <div className="text-xs font-extrabold text-gray-900">Need a CSV template?</div>
+                  <div className="text-[11px] text-gray-500 font-semibold">Download our pre-formatted template with column headers</div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleDownloadSampleCSV}
-                className="px-3.5 py-2 bg-white text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-300 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-all whitespace-nowrap"
+                className="px-3 py-1.5 bg-white text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-300 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1 shadow-xs transition-all whitespace-nowrap"
               >
-                <Download className="w-4 h-4" /> Download Sample CSV
+                <Download className="w-3.5 h-3.5" /> Sample CSV
               </button>
             </div>
 
             <label className="border-2 border-dashed border-gray-300 hover:border-rose-500 bg-gray-50 hover:bg-rose-50/30 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition-colors text-center">
-              <Upload className="w-7 h-7 text-rose-500 mb-1" />
+              <Upload className="w-6 h-6 text-rose-500 mb-1" />
               <span className="text-xs font-extrabold text-gray-800">
                 {fileName ? `File: ${fileName}` : 'Click to upload CSV or JSON file'}
               </span>
@@ -562,75 +717,95 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
           </div>
         )}
 
-        {/* Extracted Dishes Preview & Live Editor */}
+        {/* Extracted Dishes Preview & Live Editor Table */}
         {parsedItems.length > 0 && (
-          <div className="space-y-2.5">
+          <div className="space-y-2 pt-2 border-t border-gray-100">
             <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 font-black text-gray-900">
+              <div className="flex items-center gap-1.5 font-black text-gray-900">
                 <Sparkles className="w-4 h-4 text-rose-600" />
-                <span>Extracted Dishes ({parsedItems.length} items ready across all pages)</span>
+                <span>Extracted Dishes ({parsedItems.length} items ready)</span>
               </div>
-              <button
-                type="button"
-                onClick={handleAddManualItem}
-                className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1 text-[11px] bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Item
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddManualItem}
+                  className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1 text-[11px] bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200"
+                >
+                  <Plus className="w-3 h-3" /> Add Item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Clear all parsed items?')) setParsedItems([]);
+                  }}
+                  className="text-gray-400 hover:text-rose-600 text-[11px] font-bold"
+                >
+                  Clear All
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-2xl divide-y divide-gray-100 text-xs bg-white shadow-xs">
-              {parsedItems.map((item, idx) => (
-                <div key={idx} className="p-2.5 flex items-center gap-2.5 hover:bg-gray-50/80 transition-colors">
-                  {/* Category Thumbnail */}
+            {/* Filter Search */}
+            {parsedItems.length > 8 && (
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Filter extracted dishes..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+            )}
+
+            <div className="max-h-52 overflow-y-auto border border-gray-200 rounded-2xl divide-y divide-gray-100 text-xs bg-white shadow-xs">
+              {filteredItems.map((item, idx) => (
+                <div key={idx} className="p-2 flex items-center gap-2 hover:bg-gray-50/80 transition-colors">
                   <img
                     src={item.imageUrl}
                     alt={item.name}
-                    className="w-10 h-10 rounded-xl object-cover border border-gray-200 flex-shrink-0"
+                    className="w-9 h-9 rounded-lg object-cover border border-gray-200 flex-shrink-0"
                   />
 
-                  {/* Name Input */}
                   <div className="flex-1 min-w-0">
                     <input
                       type="text"
                       value={item.name}
                       onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
-                      className="w-full px-2 py-1 font-bold text-gray-900 bg-transparent border-b border-dashed border-gray-300 focus:border-rose-500 focus:outline-none text-xs"
+                      className="w-full px-1.5 py-0.5 font-bold text-gray-900 bg-transparent border-b border-dashed border-gray-300 focus:border-rose-500 focus:outline-none text-xs"
                       placeholder="Dish Name"
                     />
                   </div>
 
-                  {/* Category Select */}
                   <select
                     value={item.category}
                     onChange={(e) => handleUpdateItem(idx, 'category', e.target.value)}
-                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-700 focus:outline-none"
+                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold text-gray-700 focus:outline-none"
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
 
-                  {/* Price Input */}
-                  <div className="flex items-center gap-1 w-20 flex-shrink-0">
+                  <div className="flex items-center gap-1 w-18 flex-shrink-0">
                     <span className="font-extrabold text-gray-400 text-xs">₹</span>
                     <input
                       type="number"
                       step="1"
                       value={item.price}
                       onChange={(e) => handleUpdateItem(idx, 'price', parseFloat(e.target.value) || 0)}
-                      className="w-full px-1.5 py-1 font-black text-rose-600 text-center bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
+                      className="w-full px-1 py-0.5 font-black text-rose-600 text-center bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
                     />
                   </div>
 
-                  {/* Delete Button */}
                   <button
                     type="button"
                     onClick={() => handleDeleteItem(idx)}
                     className="p-1 text-gray-300 hover:text-rose-600 rounded-lg transition-colors flex-shrink-0"
                     title="Remove item"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
@@ -639,23 +814,28 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
         )}
 
         {/* Modal Footer */}
-        <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleImportSubmit}
-            disabled={loading || parsedItems.length === 0}
-            className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-rose-600/25 transition-all disabled:opacity-50 active:scale-95"
-          >
-            <Upload className="w-4 h-4" />
-            {loading ? 'Importing Menu...' : `Import ${parsedItems.length} Dishes to Catalog`}
-          </button>
+        <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-gray-400">
+            {parsedItems.length > 0 ? `${parsedItems.length} dishes ready for import` : 'Upload photos to begin'}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleImportSubmit}
+              disabled={loading || parsedItems.length === 0}
+              className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-rose-600/25 transition-all disabled:opacity-50 active:scale-95"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {loading ? 'Importing...' : `Import ${parsedItems.length} Dishes`}
+            </button>
+          </div>
         </div>
 
       </div>
