@@ -87,9 +87,9 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white max-w-md w-full h-full shadow-2xl flex flex-col justify-between overflow-hidden">
-        {/* Drawer Header */}
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col overflow-hidden">
+        {/* Drawer Header — fixed at top */}
+        <div className="flex-shrink-0 p-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
               <ShoppingBag className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
 
         {/* Auth Notice Alert */}
         {!isLoggedIn && (
-          <div className="p-3.5 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between px-6">
+          <div className="flex-shrink-0 p-3.5 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between px-5">
             <div className="flex items-center gap-2">
               <LogIn className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <span>Sign in required to checkout and place orders.</span>
@@ -126,13 +126,13 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
 
         {/* Vendor Ordering Warning Alert */}
         {isVendor && (
-          <div className="p-3 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2 px-6">
+          <div className="flex-shrink-0 p-3 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2 px-5">
             <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <span>Vendor Account Mode: Food ordering is restricted for Vendor profiles.</span>
           </div>
         )}
 
-        {/* Drawer Content */}
+        {/* Drawer Content — scrollable, fills remaining space */}
         {cartItems.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="w-20 h-20 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mb-4">
@@ -252,9 +252,9 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
           </div>
         )}
 
-        {/* Drawer Footer Financial Summary */}
+        {/* Drawer Footer — always pinned at bottom */}
         {cartItems.length > 0 && (
-          <div className="p-6 bg-gray-50 border-t border-gray-100 space-y-3">
+          <div className="flex-shrink-0 p-5 bg-gray-50 border-t border-gray-100 space-y-3">
             <div className="space-y-1.5 text-xs font-semibold text-gray-600">
               <div className="flex justify-between">
                 <span>Subtotal</span>
