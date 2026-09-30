@@ -22,13 +22,13 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       fetchApi('/auth/me')
         .then(res => {
-          if (res.user) {
+          if (res?.user) {
             setUser(res.user);
             localStorage.setItem('user', JSON.stringify(res.user));
           }
         })
-        .catch(() => {
-          logout();
+        .catch(err => {
+          console.warn('Profile refresh from /auth/me deferred (keeping current session):', err?.message);
         })
         .finally(() => setLoading(false));
     } else {
@@ -41,10 +41,13 @@ export const AuthProvider = ({ children }) => {
       method: 'POST',
       body: JSON.stringify({ email: email.trim(), password })
     });
-    setToken(res.token);
-    setUser(res.user);
+    if (!res?.token || !res?.user) {
+      throw new Error(res?.error || 'Authentication failed: invalid response from server');
+    }
     localStorage.setItem('token', res.token);
     localStorage.setItem('user', JSON.stringify(res.user));
+    setToken(res.token);
+    setUser(res.user);
     return res.user;
   };
 

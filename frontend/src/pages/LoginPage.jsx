@@ -66,6 +66,8 @@ export default function LoginPage({ onSuccess, onCancel }) {
       if (res && res.success === false) {
         setError(res.error || 'Google Sign-In is not enabled or failed.');
         setLoading(false);
+      } else if (res?.url) {
+        window.location.href = res.url;
       }
     } catch (err) {
       setError(err.message || 'Google Sign-In failed.');
@@ -228,8 +230,49 @@ export default function LoginPage({ onSuccess, onCancel }) {
               <p className="text-[11px] text-purple-700 font-medium">
                 Email: <span className="font-mono font-bold text-purple-900">spicyroute10@gmail.com</span> • Password: <span className="font-mono font-bold text-purple-900">admin123</span>
               </p>
-              <p className="text-[10px] text-purple-600">
-                Or click "Continue with Google" below with <span className="font-bold text-purple-900">spicyroute10@gmail.com</span>
+            </div>
+          )}
+
+          {selectedRole === 'VENDOR' && (
+            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs space-y-1.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-amber-900">⚡ Vendor Credentials</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('udayvenkat102@gmail.com');
+                    setPassword('vendor123');
+                    setMode('signin');
+                  }}
+                  className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-colors"
+                >
+                  Quick Fill Vendor
+                </button>
+              </div>
+              <p className="text-[11px] text-amber-700 font-medium">
+                Email: <span className="font-mono font-bold text-amber-900">udayvenkat102@gmail.com</span> • Password: <span className="font-mono font-bold text-amber-900">vendor123</span>
+              </p>
+            </div>
+          )}
+
+          {selectedRole === 'CUSTOMER' && (
+            <div className="p-3 bg-rose-50/80 border border-rose-200 rounded-2xl text-xs space-y-1.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-rose-900">⚡ Customer Credentials</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('uday7981047612@gmail.com');
+                    setPassword('customer123');
+                    setMode('signin');
+                  }}
+                  className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-colors"
+                >
+                  Quick Fill Customer
+                </button>
+              </div>
+              <p className="text-[11px] text-rose-700 font-medium">
+                Email: <span className="font-mono font-bold text-rose-900">uday7981047612@gmail.com</span> • Password: <span className="font-mono font-bold text-rose-900">customer123</span>
               </p>
             </div>
           )}
