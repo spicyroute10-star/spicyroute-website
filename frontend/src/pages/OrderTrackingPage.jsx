@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../api/client';
 import LiveOrderTracker from '../components/customer/LiveOrderTracker';
-import { ShoppingBag, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
+import OrderRatingModal from '../components/customer/OrderRatingModal';
+import { ShoppingBag, Clock, ChevronRight, CheckCircle2, Star } from 'lucide-react';
 
 export default function OrderTrackingPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTrackingId, setActiveTrackingId] = useState(null);
+  const [orderForRating, setOrderForRating] = useState(null);
 
   const loadMyOrders = async () => {
     try {
@@ -89,7 +91,21 @@ export default function OrderTrackingPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-4">
+                <div className="flex items-center justify-between sm:justify-end gap-3">
+                  {o.status === 'DELIVERED' && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOrderForRating(o);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-black flex items-center gap-1 transition-all active:scale-95"
+                    >
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span>Rate Order</span>
+                    </button>
+                  )}
+
                   <div className="text-right">
                     <div className="text-sm font-black text-gray-900">₹{o.total.toFixed(2)}</div>
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider mt-0.5 ${
@@ -110,6 +126,14 @@ export default function OrderTrackingPage() {
           </div>
         )}
       </div>
+
+      {/* Order Rating Modal */}
+      {orderForRating && (
+        <OrderRatingModal
+          order={orderForRating}
+          onClose={() => setOrderForRating(null)}
+        />
+      )}
     </div>
   );
 }

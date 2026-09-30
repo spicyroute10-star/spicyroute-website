@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, Truck, Store, Utensils, MapPin, Sparkles, Phone, UserCheck, Bike } from 'lucide-react';
+import { Clock, CheckCircle2, Truck, Store, Utensils, MapPin, Sparkles, Phone, UserCheck, Bike, Star } from 'lucide-react';
 import { getSocket } from '../../api/socket';
 import { fetchApi } from '../../api/client';
+import OrderRatingModal from './OrderRatingModal';
 
 export default function LiveOrderTracker({ orderId, onClose }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -13,6 +15,12 @@ export default function LiveOrderTracker({ orderId, onClose }) {
     fetchApi(`/orders/${orderId}`)
       .then((res) => {
         setOrder(res.data);
+        if (res.data?.status === 'DELIVERED') {
+          const rated = localStorage.getItem(`rated_order_${orderId}`);
+          if (!rated) {
+            setTimeout(() => setShowRatingModal(true), 600);
+          }
+        }
       })
       .catch((err) => {
         console.error('Error fetching order for tracking:', err);
@@ -25,6 +33,12 @@ export default function LiveOrderTracker({ orderId, onClose }) {
     const handleStatusChanged = (updatedOrder) => {
       if (updatedOrder.id === parseInt(orderId, 10)) {
         setOrder(updatedOrder);
+        if (updatedOrder.status === 'DELIVERED') {
+          const rated = localStorage.getItem(`rated_order_${orderId}`);
+          if (!rated) {
+            setTimeout(() => setShowRatingModal(true), 600);
+          }
+        }
       }
     };
 
@@ -155,6 +169,28 @@ export default function LiveOrderTracker({ orderId, onClose }) {
         </div>
       )}
 
+      {/* Delivered Banner with Rate Button */}
+      {order.status === 'DELIVERED' && (
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 text-white flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="font-black text-sm">Order Delivered!</div>
+              <div className="text-xs text-emerald-100 font-medium">We hope you loved your food</div>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowRatingModal(true)}
+            className="px-4 py-2 bg-white text-emerald-800 hover:bg-emerald-50 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+          >
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <span>Rate This Order</span>
+          </button>
+        </div>
+      )}
+
       {/* Order Summary Footer */}
       <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
@@ -169,6 +205,14 @@ export default function LiveOrderTracker({ orderId, onClose }) {
           <div className="text-lg font-black text-rose-600">₹{order.total.toFixed(2)}</div>
         </div>
       </div>
+
+      {/* Rating Popup Modal */}
+      {showRatingModal && (
+        <OrderRatingModal
+          order={order}
+          onClose={() => setShowRatingModal(false)}
+        />
+      )}
     </div>
   );
 }

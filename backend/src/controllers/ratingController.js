@@ -58,6 +58,20 @@ export const submitRating = async (req, res) => {
 
     if (error) throw error;
 
+    // Recalculate average rating for this restaurant
+    const { data: allRatings } = await supabase
+      .from('restaurant_ratings')
+      .select('rating')
+      .eq('restaurant_id', id);
+
+    if (allRatings && allRatings.length > 0) {
+      const newAvg = parseFloat((allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length).toFixed(1));
+      await supabase
+        .from('restaurants')
+        .update({ rating: newAvg })
+        .eq('id', id);
+    }
+
     res.json({ success: true, message: 'Rating submitted successfully!', data });
   } catch (error) {
     console.error('Error submitting rating:', error);
