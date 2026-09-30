@@ -16,8 +16,12 @@ export default function VendorPortalPage() {
   const [exporting, setExporting] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban'); // kanban, menu, drivers
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem('vendor_sound_enabled');
-    return saved !== null ? JSON.parse(saved) : true;
+    try {
+      const saved = localStorage.getItem('vendor_sound_enabled');
+      return saved !== null && saved !== 'undefined' ? JSON.parse(saved) : true;
+    } catch (e) {
+      return true;
+    }
   });
   const [newOrderAlert, setNewOrderAlert] = useState(null);
 

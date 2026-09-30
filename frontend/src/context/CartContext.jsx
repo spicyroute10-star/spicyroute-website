@@ -4,12 +4,24 @@ const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
-    const saved = localStorage.getItem('cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('cart');
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn('Corrupted cart in localStorage, resetting:', e);
+      localStorage.removeItem('cart');
+      return [];
+    }
   });
   const [restaurant, setRestaurant] = useState(() => {
-    const saved = localStorage.getItem('cart_restaurant');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('cart_restaurant');
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.warn('Corrupted cart_restaurant in localStorage, resetting:', e);
+      localStorage.removeItem('cart_restaurant');
+      return null;
+    }
   });
 
   useEffect(() => {
