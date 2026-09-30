@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Star, Clock, MapPin, Check, Lock, AlertCircle, Ban, Utensils } from 'lucide-react';
 import { fetchApi } from '../../api/client';
 import { useCart } from '../../context/CartContext';
+import RestaurantRating from './RestaurantRating';
 
 export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCart }) {
   const [restaurant, setRestaurant] = useState(null);
@@ -216,6 +217,16 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
               )}
             </div>
           </>
+        )}
+
+        {/* ── Ratings & Reviews Section ── */}
+        {restaurant && (
+          <div className="px-4 sm:px-6 pb-6">
+            <RestaurantRating
+              restaurantId={restaurantId}
+              restaurantName={restaurant.name}
+            />
+          </div>
         )}
       </div>
     </div>

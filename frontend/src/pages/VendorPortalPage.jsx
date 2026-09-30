@@ -25,38 +25,58 @@ export default function VendorPortalPage() {
     localStorage.setItem('vendor_sound_enabled', JSON.stringify(soundEnabled));
   }, [soundEnabled]);
 
-  // Audio Chime Synthesizer using Web Audio API (POS Bell Ring: Ding-Dong! 🔔)
+  // 🔔 LOUD Order Alarm — rings 3 times at full volume
   const playOrderChimeSound = () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
 
-      // First chime tone (D5 - 587.33 Hz)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
-      gain1.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.6);
+      // Master volume at MAXIMUM
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(2.5, ctx.currentTime); // boosted past 1.0
+      masterGain.connect(ctx.destination);
 
-      // Second chime tone (A5 - 880 Hz)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-      gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.85);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(ctx.currentTime + 0.15);
-      osc2.stop(ctx.currentTime + 0.85);
+      // Play 3 loud urgent rings
+      const ringCount = 3;
+      const ringInterval = 0.55;
+
+      for (let i = 0; i < ringCount; i++) {
+        const t = ctx.currentTime + i * ringInterval;
+
+        // High-pitch urgent beep (like a POS terminal alert)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square'; // square wave = louder, more piercing
+        osc.frequency.setValueAtTime(1040, t);        // C6 - high alert tone
+        osc.frequency.setValueAtTime(880, t + 0.12);  // A5 - drop for urgency
+        osc.frequency.setValueAtTime(1040, t + 0.24); // back up
+
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(1.0, t + 0.02); // fast attack
+        gain.gain.setValueAtTime(1.0, t + 0.3);
+        gain.gain.linearRampToValueAtTime(0, t + 0.45);   // fast decay
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(t);
+        osc.stop(t + 0.45);
+
+        // Deep bass thump underneath each ring for punch
+        const bass = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bass.type = 'sine';
+        bass.frequency.setValueAtTime(120, t);
+        bassGain.gain.setValueAtTime(0, t);
+        bassGain.gain.linearRampToValueAtTime(0.8, t + 0.02);
+        bassGain.gain.linearRampToValueAtTime(0, t + 0.2);
+        bass.connect(bassGain);
+        bassGain.connect(masterGain);
+        bass.start(t);
+        bass.stop(t + 0.2);
+      }
     } catch (err) {
-      console.error('Audio chime error:', err);
+      console.error('Audio alarm error:', err);
     }
   };
 
