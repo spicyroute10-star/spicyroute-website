@@ -55,12 +55,14 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
   // Smart parser to extract dishes & prices from OCR text
   const parseMenuCardText = (text) => {
     setErrorMsg('');
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    // Remove binary or non-printable junk
+    const cleanedText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFD]/g, '');
+    const lines = cleanedText.split('\n').map(l => l.trim()).filter(Boolean);
     const items = [];
     let currentCategory = 'Main';
 
     for (const rawLine of lines) {
-      if (/^(menu|food menu|restaurant|welcome|contact|phone|tel|gst|page\s*\d+)/i.test(rawLine)) {
+      if (/^(menu|food menu|restaurant|welcome|contact|phone|tel|gst|page\s*\d+|price|rate|items?|sr\s*no)/i.test(rawLine)) {
         continue;
       }
 
@@ -102,26 +104,45 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
         continue;
       }
 
-      // Look for price pattern (e.g. ₹250, Rs. 180, 150/-, $12.50, or trailing numbers)
-      const priceRegex = /(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i;
-      const match = rawLine.match(priceRegex);
+      // Pattern 1: Trailing price (e.g. "Chicken Biryani 250", "Paneer Tikka ₹ 180/-", "Cold Drink ... 40")
+      const trailingPriceRegex = /(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i;
+      // Pattern 2: Leading price (e.g. "250 Chicken Biryani", "₹ 180 Paneer Butter Masala")
+      const leadingPriceRegex = /^(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*[:\-\s]\s*(.+)$/i;
+      // Pattern 3: Separator price (e.g. "Chicken Biryani : 250" or "Mutton Sukka - 340")
+      const middlePriceRegex = /[:\-—|]\s*(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i;
 
-      if (match) {
-        const price = parseFloat(match[1]);
-        let name = rawLine.replace(match[0], '').replace(/[.\-_:~|•\t]+$/g, '').trim();
-        name = name.replace(/^[\d.)\s•\-]+/, '').trim();
+      let name = '';
+      let price = 0;
 
-        if (name.length >= 2 && !isNaN(price) && price > 0 && price < 50000) {
-          const category = guessCategory(name, currentCategory);
-          items.push({
-            name,
-            price,
-            category,
-            description: `Freshly prepared ${name}`,
-            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
-            isAvailable: true
-          });
-        }
+      const trailMatch = rawLine.match(trailingPriceRegex);
+      const leadMatch = rawLine.match(leadingPriceRegex);
+      const midMatch = rawLine.match(middlePriceRegex);
+
+      if (trailMatch && trailMatch.index > 2) {
+        price = parseFloat(trailMatch[1]);
+        name = rawLine.slice(0, trailMatch.index).replace(/[.\-_:~|•\t]+$/g, '').trim();
+      } else if (midMatch) {
+        price = parseFloat(midMatch[1]);
+        name = rawLine.slice(0, midMatch.index).trim();
+      } else if (leadMatch) {
+        price = parseFloat(leadMatch[1]);
+        name = leadMatch[2].trim();
+      }
+
+      // Clean up item name
+      name = name.replace(/^[\d.)\s•\-]+/, '').replace(/[.\-_:~|•\t]+$/g, '').trim();
+
+      // Only accept names that contain letters and are reasonable
+      if (name.length >= 2 && /[a-zA-Z]/.test(name) && !isNaN(price) && price > 0 && price < 50000) {
+        const category = guessCategory(name, currentCategory);
+        items.push({
+          name,
+          price,
+          category,
+          description: `Freshly prepared ${name}`,
+          imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+          isAvailable: true
+        });
       }
     }
 
@@ -211,6 +232,12 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
 
   const parseCSVText = (text) => {
     setErrorMsg('');
+    // Guard against binary image contents being parsed as CSV text
+    if (text.includes('JFIF') || text.includes('Exif') || /[\x00-\x08\x0E-\x1F]/.test(text.slice(0, 200))) {
+      setErrorMsg('This file is an image (JPG/PNG), not a CSV. Please use the "Upload Menu Photos" tab to scan it with AI OCR.');
+      return [];
+    }
+
     try {
       const lines = text.trim().split('\n').filter(Boolean);
       if (lines.length <= 1) return [];
@@ -243,8 +270,15 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
   };
 
   const handleCSVFileUpload = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    // If an image is selected in the CSV input, automatically switch tab & run OCR!
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp|gif|tiff)$/i.test(file.name)) {
+      setTab('photo');
+      handleMultiplePhotosUpload(e);
+      return;
+    }
 
     setFileName(file.name);
     const reader = new FileReader();
