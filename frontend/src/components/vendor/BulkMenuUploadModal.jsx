@@ -36,7 +36,74 @@ function guessCategory(name, currentSection = 'Main') {
   if (/shake|lassi|juice|coffee|tea|soda|mojito|coke|beverage|drink|water|cooler/i.test(lower)) return 'Beverages';
   if (/ice\s*cream|halwa|jamun|cake|brownie|dessert|sweet|kheer|rasgulla/i.test(lower)) return 'Desserts';
   if (/fries|roll|samosa|momos|chips|snack|pakoda|chaat|maggi/i.test(lower)) return 'Snacks';
-  return currentSection;
+  return currentSection || 'Main';
+}
+
+// High quality, dish-specific imagery mapped by food keywords
+const DISH_SPECIFIC_IMAGES = [
+  // Tiffins & Breakfast
+  { match: /sambhar\s*idly|sambar\s*idli/i, url: 'https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=600&auto=format&fit=crop&q=80' },
+  { match: /sambhar\s*vada|sambar\s*vada/i, url: 'https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=600&auto=format&fit=crop&q=80' },
+  { match: /masala\s*vada|dal\s*vada/i, url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80' },
+  { match: /vada|wada|medu\s*vada/i, url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80' },
+  { match: /idly|idli/i, url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80' },
+  { match: /masala\s*dosa/i, url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80' },
+  { match: /onion\s*dosa|rava\s*dosa/i, url: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=600&auto=format&fit=crop&q=80' },
+  { match: /ghee\s*karam|karam\s*dosa/i, url: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=600&auto=format&fit=crop&q=80' },
+  { match: /egg\s*dosa/i, url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80' },
+  { match: /pesara|pesarattu/i, url: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=600&auto=format&fit=crop&q=80' },
+  { match: /kheema\s*dosa|mutton\s*dosa/i, url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80' },
+  { match: /dosa|dosal/i, url: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=600&auto=format&fit=crop&q=80' },
+  { match: /poori|puri|chole\s*bhature|bhatura/i, url: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=600&auto=format&fit=crop&q=80' },
+  { match: /upma|poha/i, url: 'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=600&auto=format&fit=crop&q=80' },
+  
+  // Biryani
+  { match: /mutton\s*biryani/i, url: 'https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=600&auto=format&fit=crop&q=80' },
+  { match: /chicken\s*biryani|dum\s*biryani/i, url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80' },
+  { match: /veg\s*biryani|pulao/i, url: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=600&auto=format&fit=crop&q=80' },
+  { match: /biryani/i, url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80' },
+
+  // Starters & Non-Veg
+  { match: /chicken\s*65|lollipop|tikka|kebab/i, url: 'https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=600&auto=format&fit=crop&q=80' },
+  { match: /tandoori\s*chicken/i, url: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=600&auto=format&fit=crop&q=80' },
+  { match: /fish|prawn|seafood/i, url: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=600&auto=format&fit=crop&q=80' },
+  { match: /wings|crispy\s*chicken/i, url: 'https://images.unsplash.com/photo-1527477378408-1bc09a473a24?w=600&auto=format&fit=crop&q=80' },
+
+  // Main Curries & Gravies
+  { match: /butter\s*chicken/i, url: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&auto=format&fit=crop&q=80' },
+  { match: /paneer/i, url: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80' },
+  { match: /dal|makhani|tadka/i, url: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&auto=format&fit=crop&q=80' },
+  { match: /curry|gravy|masala/i, url: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=600&auto=format&fit=crop&q=80' },
+
+  // Breads
+  { match: /naan|garlic\s*naan|butter\s*naan/i, url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80' },
+  { match: /roti|chapati|paratha|kulcha/i, url: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&auto=format&fit=crop&q=80' },
+
+  // Chinese & Fast Food
+  { match: /noodle|chowmein|hakka/i, url: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop&q=80' },
+  { match: /fried\s*rice/i, url: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=600&auto=format&fit=crop&q=80' },
+  { match: /momo/i, url: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&auto=format&fit=crop&q=80' },
+  { match: /pizza/i, url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80' },
+  { match: /burger/i, url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80' },
+  { match: /sandwich/i, url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80' },
+  { match: /fries|chips/i, url: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=600&auto=format&fit=crop&q=80' },
+  { match: /samosa|roll/i, url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80' },
+
+  // Beverages & Desserts
+  { match: /tea|chai/i, url: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&auto=format&fit=crop&q=80' },
+  { match: /coffee/i, url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80' },
+  { match: /shake|smoothie/i, url: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&auto=format&fit=crop&q=80' },
+  { match: /lassi|juice|soda|coke|mojito/i, url: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&auto=format&fit=crop&q=80' },
+  { match: /ice\s*cream|cake|brownie|jamun|halwa|dessert/i, url: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80' }
+];
+
+function getDishImageUrl(dishName = '', category = 'Main') {
+  for (const entry of DISH_SPECIFIC_IMAGES) {
+    if (entry.match.test(dishName)) {
+      return entry.url;
+    }
+  }
+  return CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main;
 }
 
 // Canvas-based image preprocessor: sharpens phone photos & increases contrast for high OCR accuracy
@@ -202,7 +269,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             price: halfPrice,
             category,
             description: `Freshly prepared half portion of ${dishBase}`,
-            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            imageUrl: getDishImageUrl(dishBase, category),
             isAvailable: true
           });
           items.push({
@@ -210,7 +277,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             price: fullPrice,
             category,
             description: `Freshly prepared full portion of ${dishBase}`,
-            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            imageUrl: getDishImageUrl(dishBase, category),
             isAvailable: true
           });
           continue;
@@ -237,7 +304,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             price: seg.price,
             category,
             description: `Freshly prepared ${seg.name}`,
-            imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            imageUrl: getDishImageUrl(seg.name, category),
             isAvailable: true
           });
         }
@@ -272,7 +339,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
           price,
           category,
           description: `Freshly prepared ${name}`,
-          imageUrl: CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+          imageUrl: getDishImageUrl(name, category),
           isAvailable: true
         });
       }
@@ -406,7 +473,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             price,
             category,
             description: cols[3] || `Freshly prepared ${name}`,
-            imageUrl: cols[4] || CATEGORY_IMAGES[category] || CATEGORY_IMAGES.Main,
+            imageUrl: cols[4] || getDishImageUrl(name, category),
             isAvailable: true
           });
         }
@@ -443,8 +510,12 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     setParsedItems(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
-      if (field === 'category') {
-        updated[index].imageUrl = CATEGORY_IMAGES[value] || CATEGORY_IMAGES.Main;
+      if (field === 'name') {
+        const guessedCat = guessCategory(value, updated[index].category);
+        updated[index].category = guessedCat;
+        updated[index].imageUrl = getDishImageUrl(value, guessedCat);
+      } else if (field === 'category') {
+        updated[index].imageUrl = getDishImageUrl(updated[index].name, value);
       }
       return updated;
     });
@@ -460,9 +531,9 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
       {
         name: 'New Special Dish',
         price: 150,
-        category: 'Main',
+        category: 'Tiffins',
         description: 'Chef special dish',
-        imageUrl: CATEGORY_IMAGES.Main,
+        imageUrl: getDishImageUrl('New Special Dish', 'Tiffins'),
         isAvailable: true
       }
     ]);
