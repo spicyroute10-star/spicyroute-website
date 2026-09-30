@@ -25,58 +25,85 @@ export default function VendorPortalPage() {
     localStorage.setItem('vendor_sound_enabled', JSON.stringify(soundEnabled));
   }, [soundEnabled]);
 
-  // 🔔 LOUD Order Alarm — rings 3 times at full volume
-  const playOrderChimeSound = () => {
+  // Auto-unlock Web Audio on first user interaction anywhere in the window
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const testCtx = new AudioCtx();
+          if (testCtx.state === 'suspended') {
+            testCtx.resume();
+          }
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
+  // 🔔 LOUD Order Alarm — rings 4 times at maximum volume
+  const playOrderChimeSound = async () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
 
-      // Master volume at MAXIMUM
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      // Master volume boosted past 1.0
       const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(2.5, ctx.currentTime); // boosted past 1.0
+      masterGain.gain.setValueAtTime(3.0, ctx.currentTime);
       masterGain.connect(ctx.destination);
 
-      // Play 3 loud urgent rings
-      const ringCount = 3;
-      const ringInterval = 0.55;
+      // Play 4 urgent alarm beeps (high-low siren style)
+      const ringCount = 4;
+      const ringInterval = 0.45;
 
       for (let i = 0; i < ringCount; i++) {
         const t = ctx.currentTime + i * ringInterval;
 
-        // High-pitch urgent beep (like a POS terminal alert)
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'square'; // square wave = louder, more piercing
-        osc.frequency.setValueAtTime(1040, t);        // C6 - high alert tone
-        osc.frequency.setValueAtTime(880, t + 0.12);  // A5 - drop for urgency
-        osc.frequency.setValueAtTime(1040, t + 0.24); // back up
+        osc.type = 'triangle'; // Crisp, loud, non-distorted alert
 
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(1.0, t + 0.02); // fast attack
-        gain.gain.setValueAtTime(1.0, t + 0.3);
-        gain.gain.linearRampToValueAtTime(0, t + 0.45);   // fast decay
+        // Siren frequency shift: 1200 Hz -> 800 Hz -> 1200 Hz
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.exponentialRampToValueAtTime(800, t + 0.15);
+        osc.frequency.exponentialRampToValueAtTime(1200, t + 0.3);
+
+        gain.gain.setValueAtTime(0.01, t);
+        gain.gain.linearRampToValueAtTime(1.0, t + 0.03);
+        gain.gain.setValueAtTime(1.0, t + 0.25);
+        gain.gain.linearRampToValueAtTime(0.01, t + 0.38);
 
         osc.connect(gain);
         gain.connect(masterGain);
         osc.start(t);
-        osc.stop(t + 0.45);
+        osc.stop(t + 0.38);
 
-        // Deep bass thump underneath each ring for punch
+        // Low thump for punch
         const bass = ctx.createOscillator();
         const bassGain = ctx.createGain();
         bass.type = 'sine';
-        bass.frequency.setValueAtTime(120, t);
-        bassGain.gain.setValueAtTime(0, t);
-        bassGain.gain.linearRampToValueAtTime(0.8, t + 0.02);
-        bassGain.gain.linearRampToValueAtTime(0, t + 0.2);
+        bass.frequency.setValueAtTime(150, t);
+        bassGain.gain.setValueAtTime(0.8, t);
+        bassGain.gain.linearRampToValueAtTime(0.01, t + 0.2);
+
         bass.connect(bassGain);
         bassGain.connect(masterGain);
         bass.start(t);
         bass.stop(t + 0.2);
       }
     } catch (err) {
-      console.error('Audio alarm error:', err);
+      console.warn('Audio alarm playback failed:', err);
     }
   };
 
