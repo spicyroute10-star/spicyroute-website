@@ -201,7 +201,7 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
     {
       id: 'Chips',
       title: 'Chips & Snacks',
-      imageUrl: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=300&auto=format&fit=crop&q=80'
+      imageUrl: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&auto=format&fit=crop&q=80'
     },
     {
       id: 'Burgers',
@@ -214,6 +214,37 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
       imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300&auto=format&fit=crop&q=80'
     }
   ];
+
+  // Dynamic filter for restaurants based on active category
+  const filteredRestaurants = restaurants.filter((rest) => {
+    if (selectedCategory === 'All') return true;
+
+    const cuisine = (rest.cuisine || '').toLowerCase();
+    const name = (rest.name || '').toLowerCase();
+    const desc = (rest.description || '').toLowerCase();
+    const text = `${cuisine} ${name} ${desc}`;
+
+    switch (selectedCategory) {
+      case 'Birayani':
+        return text.includes('biryani') || text.includes('birayani') || text.includes('rice') || text.includes('indian');
+      case 'Noodle`s & FriedRice':
+        return text.includes('noodle') || text.includes('fried rice') || text.includes('chinese') || text.includes('asian') || text.includes('rice');
+      case 'Starters':
+        return text.includes('starter') || text.includes('appetizer') || text.includes('kebab') || text.includes('tikka') || text.includes('snack');
+      case 'Thali':
+        return text.includes('thali') || text.includes('meal') || text.includes('south indian') || text.includes('north indian') || text.includes('indian');
+      case 'Curry`s':
+        return text.includes('curry') || text.includes('gravy') || text.includes('paneer') || text.includes('masala') || text.includes('indian');
+      case 'Chips':
+        return text.includes('chip') || text.includes('snack') || text.includes('fast food') || text.includes('chaat') || text.includes('fries');
+      case 'Burgers':
+        return text.includes('burger') || text.includes('fast food') || text.includes('cafe') || text.includes('sandwich');
+      case 'Pizza':
+        return text.includes('pizza') || text.includes('italian') || text.includes('fast food') || text.includes('cafe');
+      default:
+        return text.includes(selectedCategory.toLowerCase());
+    }
+  });
 
   const loadRestaurants = async () => {
     try {
@@ -389,6 +420,10 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
                   <img
                     src={cat.imageUrl}
                     alt={cat.title}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&auto=format&fit=crop&q=80';
+                    }}
                     className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
@@ -405,26 +440,58 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
 
       {/* Restaurants Showcase */}
       <div className="space-y-4 pt-2">
-        <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-          Restaurants Near You
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+              Restaurants Near You
+            </h2>
+            {selectedCategory !== 'All' && (
+              <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+                Filtered: {selectedCategory}
+              </span>
+            )}
+          </div>
+
+          {selectedCategory !== 'All' && (
+            <button
+              onClick={() => setSelectedCategory('All')}
+              className="text-xs font-black text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-colors"
+            >
+              Clear Filter ✕
+            </button>
+          )}
+        </div>
 
         {loading ? (
           <div className="text-center py-16 text-gray-400 font-bold text-sm flex items-center justify-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-rose-600" />
             <span>Finding top restaurants near your location...</span>
           </div>
-        ) : restaurants.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 p-8 shadow-xs">
-            <Utensils className="w-12 h-12 text-rose-300 mx-auto mb-3" />
-            <h3 className="text-lg font-extrabold text-gray-800">No restaurants registered yet</h3>
-            <p className="text-xs font-medium text-gray-400 mt-1 max-w-sm mx-auto">
-              Vendors can sign in using their Vendor account to add menus and start receiving orders.
+        ) : filteredRestaurants.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 p-8 shadow-xs space-y-3">
+            <Utensils className="w-12 h-12 text-rose-300 mx-auto" />
+            <h3 className="text-lg font-extrabold text-gray-800">
+              {selectedCategory !== 'All'
+                ? `No restaurants found under "${selectedCategory}"`
+                : 'No restaurants registered yet'}
+            </h3>
+            <p className="text-xs font-medium text-gray-400 max-w-sm mx-auto">
+              {selectedCategory !== 'All'
+                ? 'Try picking another category or clear the filter to view all restaurants.'
+                : 'Vendors can sign in using their Vendor account to add menus and start receiving orders.'}
             </p>
+            {selectedCategory !== 'All' && (
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95"
+              >
+                View All Restaurants
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {restaurants.map((rest) => (
+            {filteredRestaurants.map((rest) => (
               <RestaurantCard
                 key={rest.id}
                 restaurant={rest}
