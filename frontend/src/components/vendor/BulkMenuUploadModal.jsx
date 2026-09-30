@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Upload, Camera, FileSpreadsheet, Download, X, CheckCircle, 
-  AlertCircle, Trash2, Plus, Loader2, Image as ImageIcon, Sparkles, RefreshCw
+  AlertCircle, Trash2, Plus, Loader2, Image as ImageIcon, Sparkles, RefreshCw, Layers
 } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import { fetchApi } from '../../api/client';
@@ -44,7 +44,8 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [scanningPageText, setScanningPageText] = useState('');
+  const [uploadedPhotos, setUploadedPhotos] = useState([]); // array of { file, preview, name }
   const [fileName, setFileName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showRawText, setShowRawText] = useState(false);
@@ -59,12 +60,10 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     let currentCategory = 'Main';
 
     for (const rawLine of lines) {
-      // Filter out common menu headers, phone numbers, noise
       if (/^(menu|food menu|restaurant|welcome|contact|phone|tel|gst|page\s*\d+)/i.test(rawLine)) {
         continue;
       }
 
-      // Check if line is a category heading
       const cleanUpper = rawLine.toUpperCase();
       if (/^(STARTERS|APPETIZERS|SOUPS)/i.test(cleanUpper)) {
         currentCategory = 'Starters';
@@ -103,15 +102,13 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
         continue;
       }
 
-      // Look for price pattern (e.g. ₹250, Rs. 180, 150/-, $12.50, or just trailing numbers 240)
+      // Look for price pattern (e.g. ₹250, Rs. 180, 150/-, $12.50, or trailing numbers)
       const priceRegex = /(?:₹|Rs\.?|INR|\$)?\s*(\d{2,5}(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i;
       const match = rawLine.match(priceRegex);
 
       if (match) {
         const price = parseFloat(match[1]);
         let name = rawLine.replace(match[0], '').replace(/[.\-_:~|•\t]+$/g, '').trim();
-
-        // Clean leading bullets or numbers
         name = name.replace(/^[\d.)\s•\-]+/, '').trim();
 
         if (name.length >= 2 && !isNaN(price) && price > 0 && price < 50000) {
@@ -131,43 +128,72 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     return items;
   };
 
-  // Handle Photo Upload & OCR Processing
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Handle Multi-Photo Upload & Sequential OCR Processing
+  const handleMultiplePhotosUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setErrorMsg('');
-    setFileName(file.name);
-    setImagePreview(URL.createObjectURL(file));
     setScanning(true);
-    setScanProgress(0);
 
-    try {
-      // OCR processing using Tesseract.js WebAssembly
-      const result = await Tesseract.recognize(file, 'eng', {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            setScanProgress(Math.round((m.progress || 0) * 100));
+    const newPhotoObjs = files.map((file, idx) => ({
+      file,
+      name: file.name,
+      preview: URL.createObjectURL(file),
+      id: `${Date.now()}-${idx}`
+    }));
+
+    const allPhotos = [...uploadedPhotos, ...newPhotoObjs];
+    setUploadedPhotos(allPhotos);
+
+    let accumulatedText = rawText;
+    const allDishes = [...parsedItems];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const pageIndex = uploadedPhotos.length + i + 1;
+      setScanningPageText(`Scanning Page ${pageIndex} of ${allPhotos.length}: ${file.name}...`);
+      setScanProgress(0);
+
+      try {
+        const result = await Tesseract.recognize(file, 'eng', {
+          logger: (m) => {
+            if (m.status === 'recognizing text') {
+              setScanProgress(Math.round((m.progress || 0) * 100));
+            }
+          }
+        });
+
+        const extracted = result.data.text || '';
+        accumulatedText += `\n--- PAGE ${pageIndex} (${file.name}) ---\n` + extracted;
+        
+        const newDishes = parseMenuCardText(extracted);
+        // Avoid duplicate items by lowercase name
+        for (const dish of newDishes) {
+          const exists = allDishes.some(d => d.name.toLowerCase() === dish.name.toLowerCase() && d.price === dish.price);
+          if (!exists) {
+            allDishes.push(dish);
           }
         }
-      });
-
-      const extracted = result.data.text || '';
-      setRawText(extracted);
-
-      const dishes = parseMenuCardText(extracted);
-      if (dishes.length === 0) {
-        setErrorMsg('Could not detect distinct dishes and prices from this photo. You can manually paste or review the extracted text below.');
-        setShowRawText(true);
-      } else {
-        setParsedItems(dishes);
+      } catch (err) {
+        console.error(`OCR failed for ${file.name}:`, err);
+        setErrorMsg(`Failed scanning ${file.name}: ${err.message}`);
       }
-    } catch (err) {
-      console.error('Menu card OCR failed:', err);
-      setErrorMsg('Failed to read text from menu card image: ' + err.message);
-    } finally {
-      setScanning(false);
     }
+
+    setRawText(accumulatedText);
+    setParsedItems(allDishes);
+    setScanning(false);
+    setScanningPageText('');
+
+    if (allDishes.length === 0) {
+      setErrorMsg('Could not detect distinct dishes from the uploaded photo(s). You can review or edit the extracted text below.');
+      setShowRawText(true);
+    }
+  };
+
+  const handleRemovePhoto = (id) => {
+    setUploadedPhotos(prev => prev.filter(p => p.id !== id));
   };
 
   // CSV Template download
@@ -294,9 +320,9 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
               <Camera className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-gray-900">Menu Card Photo & Bulk Importer</h3>
+              <h3 className="text-lg font-extrabold text-gray-900">Multi-Page Menu Card Photo & Importer</h3>
               <p className="text-xs font-semibold text-gray-400">
-                Snap or upload a photo of your printed menu card to automatically extract dishes
+                Upload one or multiple JPG/PNG menu photos to automatically extract dishes across all pages
               </p>
             </div>
           </div>
@@ -315,7 +341,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             }`}
           >
             <Camera className="w-4 h-4" />
-            <span>📸 Scan Menu Card Photo (OCR)</span>
+            <span>📸 Upload Menu Photos / JPGs ({uploadedPhotos.length} pages)</span>
           </button>
           <button
             type="button"
@@ -329,24 +355,29 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* PHOTO OCR UPLOAD VIEW */}
+        {/* PHOTO OCR MULTI-PAGE UPLOAD VIEW */}
         {tab === 'photo' && (
           <div className="space-y-4">
+            
+            {/* Upload Area / Dropzone */}
             <label className="border-2 border-dashed border-rose-300 hover:border-rose-500 bg-rose-50/40 hover:bg-rose-50/70 rounded-3xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all text-center group">
               <div className="w-14 h-14 rounded-2xl bg-white text-rose-600 flex items-center justify-center shadow-md mb-3 group-hover:scale-110 transition-transform">
                 <Camera className="w-7 h-7" />
               </div>
               <span className="text-sm font-black text-gray-900">
-                {fileName ? `Selected: ${fileName}` : 'Click to Upload Menu Card Photo'}
+                {uploadedPhotos.length > 0 ? '+ Click to Add More Menu Card Photos / Pages' : 'Click to Upload Menu Card Photos (JPG / PNG)'}
               </span>
               <span className="text-xs text-rose-600 font-bold mt-1">
-                Supports camera snapshot, JPG, PNG, WEBP of physical restaurant menu
+                You can select multiple JPG images at once (Page 1, Page 2, Front & Back)
+              </span>
+              <span className="text-[10px] text-gray-400 font-semibold mt-0.5">
+                Supports .jpg, .jpeg, .png, .webp
               </span>
               <input
                 type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handlePhotoUpload}
+                accept="image/*,.jpg,.jpeg,.png,.webp"
+                multiple
+                onChange={handleMultiplePhotosUpload}
                 className="hidden"
                 disabled={scanning}
               />
@@ -358,7 +389,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
                 <div className="flex items-center justify-between text-xs font-bold text-purple-900">
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                    Reading dishes & prices with AI OCR...
+                    {scanningPageText || 'Reading menu card with AI OCR...'}
                   </span>
                   <span>{scanProgress}%</span>
                 </div>
@@ -371,20 +402,60 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Image Preview & Raw Text Toggle */}
-            {imagePreview && !scanning && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs">
-                <div className="flex items-center gap-3">
-                  <img src={imagePreview} alt="Menu Card" className="w-12 h-12 object-cover rounded-xl border border-gray-200 shadow-xs" />
-                  <div>
-                    <span className="font-extrabold text-gray-900 block truncate max-w-xs">{fileName}</span>
-                    <span className="text-[11px] text-emerald-600 font-bold">✓ Scanned successfully</span>
-                  </div>
+            {/* Multi-Photo Thumbnails Gallery */}
+            {uploadedPhotos.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-extrabold text-gray-700">
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-rose-600" />
+                    Uploaded Menu Pages ({uploadedPhotos.length} photos)
+                  </span>
+                  <label className="text-rose-600 hover:text-rose-700 font-bold cursor-pointer text-[11px] underline">
+                    + Add More Pages
+                    <input
+                      type="file"
+                      accept="image/*,.jpg,.jpeg,.png,.webp"
+                      multiple
+                      onChange={handleMultiplePhotosUpload}
+                      className="hidden"
+                      disabled={scanning}
+                    />
+                  </label>
                 </div>
+
+                <div className="flex items-center gap-2.5 overflow-x-auto pb-2">
+                  {uploadedPhotos.map((photo, pIdx) => (
+                    <div key={photo.id || pIdx} className="relative flex-shrink-0 group w-20 h-24 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-xs">
+                      <img src={photo.preview} alt={`Page ${pIdx + 1}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-between p-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto(photo.id)}
+                          className="self-end p-0.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors"
+                          title="Remove this photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="text-[10px] font-black text-white text-center">
+                          Page {pIdx + 1}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Raw Text Toggle */}
+            {rawText && !scanning && (
+              <div className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs">
+                <span className="text-[11px] text-gray-500 font-semibold">
+                  OCR extracted text from {uploadedPhotos.length} page(s)
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowRawText(!showRawText)}
-                  className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl font-bold text-[11px] transition-colors"
+                  className="px-2.5 py-1 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg font-bold text-[10px] transition-colors"
                 >
                   {showRawText ? 'Hide Raw OCR Text' : 'View Raw OCR Text'}
                 </button>
@@ -394,7 +465,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             {showRawText && (
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                  Extracted Text (You can edit text and click "Re-parse Dishes"):
+                  Combined Extracted OCR Text:
                 </label>
                 <textarea
                   rows="4"
@@ -463,7 +534,7 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 font-black text-gray-900">
                 <Sparkles className="w-4 h-4 text-rose-600" />
-                <span>Extracted Dishes ({parsedItems.length} items ready)</span>
+                <span>Extracted Dishes ({parsedItems.length} items ready across all pages)</span>
               </div>
               <button
                 type="button"
