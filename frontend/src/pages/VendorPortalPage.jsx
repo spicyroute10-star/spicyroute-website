@@ -110,8 +110,22 @@ export default function VendorPortalPage() {
     const socket = getSocket();
     socket.emit('join_vendor_room', profile.id);
 
+    // Re-join room on reconnection
+    const handleReconnect = () => {
+      console.log('⚡ Reconnected — rejoining vendor room:', profile.id);
+      socket.emit('join_vendor_room', profile.id);
+    };
+    socket.on('connect', handleReconnect);
+
     const handleNewOrder = (newOrder) => {
-      setOrders((prev) => [newOrder, ...prev]);
+      console.log('🔔 New order received via WebSocket:', newOrder);
+      setOrders((prev) => {
+        const exists = prev.some((o) => o.id === newOrder.id);
+        if (exists) {
+          return prev.map((o) => (o.id === newOrder.id ? newOrder : o));
+        }
+        return [newOrder, ...prev];
+      });
 
       if (soundEnabled) {
         playOrderChimeSound();
@@ -127,12 +141,44 @@ export default function VendorPortalPage() {
       setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
     };
 
+    const handleGlobalNewOrder = (newOrder) => {
+      if (newOrder && (newOrder.restaurantId === profile.id || String(newOrder.restaurantId) === String(profile.id))) {
+        handleNewOrder(newOrder);
+      }
+    };
+
     socket.on('new_order', handleNewOrder);
+    socket.on('global_vendor_new_order', handleGlobalNewOrder);
     socket.on('order_updated_vendor', handleOrderUpdated);
 
+    // 4-second live background poll: ensures orders refresh immediately even if mobile sockets disconnect
+    const pollInterval = setInterval(async () => {
+      try {
+        const ordRes = await fetchApi('/vendor/orders');
+        const latest = ordRes?.data || ordRes || [];
+        setOrders((prev) => {
+          if (prev.length > 0 && latest.length > prev.length) {
+            const prevIds = new Set(prev.map((o) => o.id));
+            const fresh = latest.filter((o) => !prevIds.has(o.id));
+            if (fresh.length > 0) {
+              if (soundEnabled) playOrderChimeSound();
+              setNewOrderAlert(fresh[0]);
+              setTimeout(() => setNewOrderAlert(null), 7000);
+            }
+          }
+          return latest;
+        });
+      } catch (e) {
+        // silent background poll
+      }
+    }, 4000);
+
     return () => {
+      socket.off('connect', handleReconnect);
       socket.off('new_order', handleNewOrder);
+      socket.off('global_vendor_new_order', handleGlobalNewOrder);
       socket.off('order_updated_vendor', handleOrderUpdated);
+      clearInterval(pollInterval);
     };
   }, [profile?.id, soundEnabled]);
 

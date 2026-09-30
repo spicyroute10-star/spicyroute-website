@@ -27,63 +27,98 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
   const [bannerIndex, setBannerIndex] = useState(1);
 
   // Quick GPS Geolocation + Reverse Geocoding via OpenStreetMap / Maps API
+  // Quick GPS Geolocation + Reverse Geocoding via BigDataCloud & OpenStreetMap
   const handleQuickLocate = () => {
-    if (!navigator.geolocation) {
-      alert('GPS Geolocation is not supported by your device.');
-      return;
-    }
-
     setDetectingLocation(true);
     setLocationSuccess(false);
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    const onCoordsFound = async (coords) => {
+      const { latitude, longitude } = coords;
+      let fullAddress = '';
+
+      // 1. BigDataCloud reverse geocode (Free, instant, client-side, CORS allowed)
+      try {
+        const res = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const area = data.locality || data.subLocality || data.neighbourhood || '';
+          const city = data.city || data.principalSubdivision || '';
+          const state = data.principalSubdivision || '';
+          const zip = data.postcode || '';
+          const parts = [area, city, state, zip].filter(Boolean);
+          if (parts.length > 0) fullAddress = [...new Set(parts)].join(', ');
+        }
+      } catch (err) {}
+
+      // 2. Fallback to OpenStreetMap
+      if (!fullAddress) {
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
           );
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.address) {
+              const road = data.address.road || data.address.suburb || data.address.neighbourhood || '';
+              const locality = data.address.city || data.address.town || data.address.county || '';
+              const state = data.address.state || '';
+              const parts = [road, locality, state].filter(Boolean);
+              if (parts.length > 0) fullAddress = parts.join(', ');
+            } else if (data?.display_name) {
+              fullAddress = data.display_name.split(',').slice(0, 3).join(', ');
+            }
+          }
+        } catch (err) {}
+      }
+
+      if (!fullAddress) {
+        fullAddress = `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+      }
+
+      setSelectedLocation(fullAddress);
+      localStorage.setItem('user_delivery_address', fullAddress);
+      setLocationSuccess(true);
+      setTimeout(() => setLocationSuccess(false), 2500);
+      setDetectingLocation(false);
+    };
+
+    const fetchIpFallback = async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
           const data = await res.json();
-
-          let fullAddress = '';
-          if (data && data.address) {
-            const addr = data.address;
-            const road = addr.road || addr.street || addr.suburb || addr.neighbourhood || '';
-            const locality = addr.city || addr.town || addr.village || addr.county || '';
-            const state = addr.state || '';
-            const zip = addr.postcode || '';
-
-            const parts = [road, locality, state, zip].filter(Boolean);
-            fullAddress = parts.join(', ');
-          }
-
-          if (!fullAddress && data.display_name) {
-            fullAddress = data.display_name;
-          }
-
-          if (!fullAddress) {
-            fullAddress = `GPS Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
-          }
-
-          setSelectedLocation(fullAddress);
-          localStorage.setItem('user_delivery_address', fullAddress);
-          setLocationSuccess(true);
-          setTimeout(() => setLocationSuccess(false), 2500);
-        } catch (err) {
-          console.error('Geocoding error:', err);
-          const fallback = `Live Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+          const fallback = `${data.city || 'Local Area'}, ${data.region || ''}, ${data.country_name || 'India'}`;
           setSelectedLocation(fallback);
           localStorage.setItem('user_delivery_address', fallback);
-        } finally {
-          setDetectingLocation(false);
+          setLocationSuccess(true);
+          setTimeout(() => setLocationSuccess(false), 2500);
         }
-      },
-      (error) => {
+      } catch (e) {
+        alert('Could not determine location. Please select an address manually.');
+      } finally {
         setDetectingLocation(false);
-        console.warn('Geolocation error:', error);
-        alert('Location access denied. Please allow location permissions in device settings.');
+      }
+    };
+
+    if (!navigator.geolocation) {
+      fetchIpFallback();
+      return;
+    }
+
+    // Fast lock first
+    navigator.geolocation.getCurrentPosition(
+      (pos) => onCoordsFound(pos.coords),
+      () => {
+        // Fallback to high accuracy or IP
+        navigator.geolocation.getCurrentPosition(
+          (pos) => onCoordsFound(pos.coords),
+          () => fetchIpFallback(),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
   };
 
@@ -196,7 +231,10 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
   };
 
   useEffect(() => {
-    loadRestaurants();
+    const timer = setTimeout(() => {
+      loadRestaurants();
+    }, 250);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const handleNextBanner = () => {

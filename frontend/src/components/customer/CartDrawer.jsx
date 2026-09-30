@@ -12,38 +12,127 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
   const isAdmin = user?.role === 'ADMIN';
   const isLoggedIn = !!user;
 
-  const [deliveryAddress, setDeliveryAddress] = useState(user?.address || 'Hitec City, Hyderabad');
+  const [deliveryAddress, setDeliveryAddress] = useState(() => {
+    return localStorage.getItem('user_delivery_address') || user?.address || 'Hitec City, Hyderabad';
+  });
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '+91 98000 00000');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [gpsSuccess, setGpsSuccess] = useState(false);
 
-  if (!isOpen) return null;
+  // Sync address whenever drawer opens or user changes
+  useEffect(() => {
+    if (isOpen) {
+      const stored = localStorage.getItem('user_delivery_address');
+      if (stored) {
+        setDeliveryAddress(stored);
+      } else if (user?.address) {
+        setDeliveryAddress(user.address);
+      }
+    }
+  }, [isOpen, user?.address]);
 
-  const handleUseCurrentLocation = () => {
+  // Robust GPS Geolocation + Reverse Geocoding to real street address
+  const handleUseCurrentLocation = async () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser or device');
+      // Fallback to IP geolocation if browser lacks GPS
+      fetchIpLocation();
       return;
     }
 
     setLocating(true);
     setGpsSuccess(false);
 
+    const onCoordsReceived = async (coords) => {
+      const { latitude, longitude } = coords;
+      let humanAddress = '';
+
+      // 1. Try BigDataCloud reverse geocode (Free, instant, CORS-friendly)
+      try {
+        const res = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const area = data.locality || data.subLocality || data.neighbourhood || '';
+          const city = data.city || data.principalSubdivision || '';
+          const state = data.principalSubdivision || '';
+          const postal = data.postcode || '';
+
+          const parts = [area, city, state, postal].filter(Boolean);
+          if (parts.length > 0) {
+            humanAddress = [...new Set(parts)].join(', ');
+          }
+        }
+      } catch (err) {}
+
+      // 2. Fallback to OpenStreetMap Nominatim
+      if (!humanAddress) {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.address) {
+              const road = data.address.road || data.address.suburb || data.address.neighbourhood || '';
+              const city = data.address.city || data.address.town || data.address.county || '';
+              const state = data.address.state || '';
+              const parts = [road, city, state].filter(Boolean);
+              if (parts.length > 0) humanAddress = parts.join(', ');
+            } else if (data?.display_name) {
+              humanAddress = data.display_name.split(',').slice(0, 3).join(', ');
+            }
+          }
+        } catch (err) {}
+      }
+
+      // 3. Fallback to GPS coordinates label
+      if (!humanAddress) {
+        humanAddress = `GPS Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) - Near ${restaurant?.name || 'Local Hub'}`;
+      }
+
+      setDeliveryAddress(humanAddress);
+      localStorage.setItem('user_delivery_address', humanAddress);
+      setLocating(false);
+      setGpsSuccess(true);
+      setTimeout(() => setGpsSuccess(false), 3000);
+    };
+
+    const fetchIpLocation = async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          const data = await res.json();
+          const fallback = `${data.city || 'Local Area'}, ${data.region || ''}, ${data.country_name || 'India'}`;
+          setDeliveryAddress(fallback);
+          localStorage.setItem('user_delivery_address', fallback);
+          setGpsSuccess(true);
+          setTimeout(() => setGpsSuccess(false), 3000);
+        }
+      } catch (e) {
+        alert('Could not detect location. Please type your delivery address manually.');
+      } finally {
+        setLocating(false);
+      }
+    };
+
+    // Fast location first (low accuracy = instant Wi-Fi/cellular lock)
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const formattedAddress = `Current GPS Pin (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) - Near ${restaurant?.name || 'Local Area'}`;
-        setDeliveryAddress(formattedAddress);
-        setLocating(false);
-        setGpsSuccess(true);
-        setTimeout(() => setGpsSuccess(false), 3000);
+      (position) => onCoordsReceived(position.coords),
+      (fastErr) => {
+        // Retry with high accuracy
+        navigator.geolocation.getCurrentPosition(
+          (position) => onCoordsReceived(position.coords),
+          (slowErr) => {
+            console.warn('Geolocation failed, falling back to IP:', slowErr);
+            fetchIpLocation();
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
       },
-      (error) => {
-        setLocating(false);
-        alert('Could not retrieve GPS location: ' + error.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
   };
 
@@ -84,6 +173,8 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
       setLoading(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">

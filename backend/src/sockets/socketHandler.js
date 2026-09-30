@@ -47,8 +47,14 @@ export const getIO = () => {
 export const notifyOrderCreated = (order) => {
   if (!ioInstance) return;
 
-  // Notify vendor
-  ioInstance.to(`restaurant_${order.restaurantId}`).emit('new_order', order);
+  const restId = String(order.restaurantId);
+  console.log(`📡 Emitting new_order to room restaurant_${restId}`);
+
+  // Notify vendor room
+  ioInstance.to(`restaurant_${restId}`).emit('new_order', order);
+
+  // Broadcast fallback for vendors
+  ioInstance.emit('global_vendor_new_order', order);
 
   // Notify admin dashboard
   ioInstance.to('admin_room').emit('order_created_admin', order);
