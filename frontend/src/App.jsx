@@ -95,8 +95,8 @@ function MainApp() {
   };
 
   const renderActiveView = () => {
-    if (activeView === 'login' && !user) {
-      return <LoginPage onSuccess={handleLoginSuccess} />;
+    if (activeView === 'login') {
+      return <LoginPage onSuccess={handleLoginSuccess} onCancel={() => setActiveView('storefront')} />;
     }
 
     if (activeView === 'admin') {

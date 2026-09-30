@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Flame, Mail, Lock, User, Store, ShieldAlert, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-export default function LoginPage({ onSuccess }) {
-  const { login, register, loginWithGoogle } = useAuth();
+export default function LoginPage({ onSuccess, onCancel }) {
+  const { user, login, logout, register, loginWithGoogle } = useAuth();
 
   // Mode: 'signin' or 'signup'
   const [mode, setMode] = useState('signin');
@@ -87,6 +87,37 @@ export default function LoginPage({ onSuccess }) {
             {mode === 'signin' ? 'Sign in to access your account' : 'Create an account to get started'}
           </p>
         </div>
+
+        {/* Currently Logged In Account Alert */}
+        {user && (
+          <div className="p-3.5 bg-purple-50/80 border border-purple-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div>
+              <p className="font-extrabold text-purple-900">Signed In As:</p>
+              <p className="text-purple-700 font-semibold">{user.name} ({user.email})</p>
+              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-200 text-purple-900">
+                ROLE: {user.role}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSuccess) onSuccess(user.role);
+                }}
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all"
+              >
+                Go to Dashboard
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                className="px-3 py-1.5 bg-white text-rose-600 hover:bg-rose-50 font-bold rounded-xl text-xs border border-rose-200 transition-all"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mode Switcher Tabs */}
         <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200">
@@ -177,6 +208,31 @@ export default function LoginPage({ onSuccess }) {
               <span className="text-[9px] font-semibold text-gray-400">Analytics</span>
             </button>
           </div>
+
+          {selectedRole === 'ADMIN' && (
+            <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-2xl text-xs space-y-1.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-purple-900">⚡ Super Admin Credentials</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('spicyroute10@gmail.com');
+                    setPassword('admin123');
+                    setMode('signin');
+                  }}
+                  className="px-2 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-colors"
+                >
+                  Quick Fill Admin
+                </button>
+              </div>
+              <p className="text-[11px] text-purple-700 font-medium">
+                Email: <span className="font-mono font-bold text-purple-900">spicyroute10@gmail.com</span> • Password: <span className="font-mono font-bold text-purple-900">admin123</span>
+              </p>
+              <p className="text-[10px] text-purple-600">
+                Or sign in with Google using <span className="font-bold">spicyroute10@gmail.com</span>, <span className="font-bold">udayvenkat8341913039@gmail.com</span>, or <span className="font-bold">uday7981047612@gmail.com</span>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Email & Password Form */}
@@ -267,6 +323,18 @@ export default function LoginPage({ onSuccess }) {
           </svg>
           <span>Continue with Google</span>
         </button>
+
+        {onCancel && (
+          <div className="text-center pt-1">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-xs font-bold text-gray-400 hover:text-gray-600 underline"
+            >
+              ← Back to Storefront
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
 export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCount = 2 }) {
   const { user, logout } = useAuth();
   const isVendor = user?.role === 'VENDOR';
+  const isAdmin = user?.role === 'ADMIN';
 
   const [darkMode, setDarkMode] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -30,26 +31,28 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
     <div className="min-h-screen bg-gray-50 pb-28">
       {/* Top Header Section */}
       <div className={`p-6 sm:p-8 rounded-b-3xl shadow-lg relative text-white ${
-        isVendor 
-          ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-rose-600' 
-          : 'bg-gradient-to-r from-red-600 via-rose-600 to-rose-700'
+        isAdmin
+          ? 'bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900'
+          : isVendor 
+            ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-rose-600' 
+            : 'bg-gradient-to-r from-red-600 via-rose-600 to-rose-700'
       }`}>
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar Circle */}
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-white shadow-md">
-              {isVendor ? <Store className="w-9 h-9 sm:w-11 sm:h-11 text-white" /> : <User className="w-9 h-9 sm:w-11 sm:h-11 text-white" />}
+              {isAdmin ? <Shield className="w-9 h-9 sm:w-11 sm:h-11 text-white" /> : isVendor ? <Store className="w-9 h-9 sm:w-11 sm:h-11 text-white" /> : <User className="w-9 h-9 sm:w-11 sm:h-11 text-white" />}
             </div>
 
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight">{user?.name || editName}</h1>
                 <span className="bg-white/20 backdrop-blur-md text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-white/30 text-amber-100">
-                  {isVendor ? 'Vendor' : 'Customer'}
+                  {isAdmin ? 'Super Admin' : isVendor ? 'Vendor' : 'Customer'}
                 </span>
               </div>
               <p className="text-xs font-semibold text-white/80 mt-0.5">
-                {isVendor ? 'Verified Restaurant Partner' : 'Joined 08 Sep, 2026'}
+                {isAdmin ? 'Platform Executive Administrator' : isVendor ? 'Verified Restaurant Partner' : 'Joined 08 Sep, 2026'}
               </p>
             </div>
           </div>
@@ -68,6 +71,25 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
       {/* Main Content Area */}
       <div className="max-w-3xl mx-auto px-4 -mt-6 space-y-6">
         
+        {/* Admin Executive Dashboard Banner */}
+        {isAdmin && (
+          <div 
+            onClick={() => setActiveView('admin')}
+            className="bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white rounded-2xl p-5 shadow-lg flex items-center justify-between cursor-pointer hover:shadow-xl transition-all border border-purple-400/30 group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black">Super Admin Executive Dashboard</h3>
+                <p className="text-xs text-purple-200">View real-time GMV, vendor controls, and export financial reports</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-purple-200 group-hover:translate-x-1 transition-transform" />
+          </div>
+        )}
+
         {/* Top Stat Cards Row */}
         {isVendor ? (
           /* VENDOR STAT CARDS */

@@ -184,7 +184,40 @@ export default function Navbar({ onOpenCart, activeView, setActiveView }) {
       </header>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      {isVendor ? (
+      {isAdmin ? (
+        /* ADMIN ONLY MOBILE BOTTOM NAV */
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-purple-200 shadow-2xl py-1.5 px-4">
+          <div className="max-w-md mx-auto flex items-center justify-around">
+            <button
+              onClick={() => setActiveView('admin')}
+              className={`flex flex-col items-center justify-center py-1 px-3 transition-all ${
+                activeView === 'admin' ? 'text-purple-600 font-black scale-105' : 'text-gray-500 font-bold'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span className="text-[11px] mt-0.5">Admin Analytics</span>
+            </button>
+            <button
+              onClick={() => setActiveView('storefront')}
+              className={`flex flex-col items-center justify-center py-1 px-3 transition-all ${
+                activeView === 'storefront' ? 'text-purple-600 font-black scale-105' : 'text-gray-500 font-bold'
+              }`}
+            >
+              <Home className="w-5 h-5" />
+              <span className="text-[11px] mt-0.5">Storefront</span>
+            </button>
+            <button
+              onClick={() => setActiveView('menu-profile')}
+              className={`flex flex-col items-center justify-center py-1 px-3 transition-all ${
+                activeView === 'menu-profile' ? 'text-purple-600 font-black scale-105' : 'text-gray-500 font-bold'
+              }`}
+            >
+              <MenuIcon className="w-5 h-5" />
+              <span className="text-[11px] mt-0.5">Account</span>
+            </button>
+          </div>
+        </div>
+      ) : isVendor ? (
         /* VENDOR ONLY MOBILE BOTTOM NAV */
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl py-1.5 px-4">
           <div className="max-w-md mx-auto flex items-center justify-around">
