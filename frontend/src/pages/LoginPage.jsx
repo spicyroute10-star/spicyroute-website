@@ -229,7 +229,7 @@ export default function LoginPage({ onSuccess, onCancel }) {
                 Email: <span className="font-mono font-bold text-purple-900">spicyroute10@gmail.com</span> • Password: <span className="font-mono font-bold text-purple-900">admin123</span>
               </p>
               <p className="text-[10px] text-purple-600">
-                Or sign in with Google using <span className="font-bold">spicyroute10@gmail.com</span>, <span className="font-bold">udayvenkat8341913039@gmail.com</span>, or <span className="font-bold">uday7981047612@gmail.com</span>
+                Or click "Continue with Google" below with <span className="font-bold text-purple-900">spicyroute10@gmail.com</span>
               </p>
             </div>
           )}
