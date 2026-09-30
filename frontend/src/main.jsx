@@ -18,7 +18,10 @@ class ErrorBoundary extends Component {
   }
 
   handleReset = () => {
-    localStorage.clear();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {}
     window.location.href = '/';
   };
 
@@ -40,13 +43,30 @@ class ErrorBoundary extends Component {
           <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>
             Spice Route
           </h2>
-          <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '320px', margin: '0 0 20px 0' }}>
+          <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '360px', margin: '0 0 16px 0' }}>
             We encountered a temporary loading issue. Click below to reload cleanly.
           </p>
+          {this.state.error && (
+            <div style={{
+              margin: '0 0 20px 0',
+              padding: '12px 16px',
+              backgroundColor: '#FEF2F2',
+              border: '1px solid #FECDD3',
+              borderRadius: '12px',
+              color: '#9F1239',
+              fontSize: '11px',
+              fontFamily: 'monospace',
+              maxWidth: '90%',
+              wordBreak: 'break-word',
+              textAlign: 'left'
+            }}>
+              <b>Error:</b> {this.state.error?.message || String(this.state.error)}
+            </div>
+          )}
           <button
             onClick={this.handleReset}
             style={{
-              padding: '12px 24px',
+              padding: '12px 28px',
               backgroundColor: '#E11D48',
               color: '#fff',
               border: 'none',
@@ -54,7 +74,7 @@ class ErrorBoundary extends Component {
               fontSize: '13px',
               fontWeight: '700',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(225, 29, 72, 0.25)'
+              boxShadow: '0 4px 14px rgba(225, 29, 72, 0.3)'
             }}
           >
             Reload Website

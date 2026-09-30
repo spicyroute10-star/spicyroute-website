@@ -216,12 +216,13 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
   ];
 
   // Dynamic filter for restaurants based on active category
-  const filteredRestaurants = restaurants.filter((rest) => {
+  const filteredRestaurants = (Array.isArray(restaurants) ? restaurants : []).filter((rest) => {
+    if (!rest) return false;
     if (selectedCategory === 'All') return true;
 
-    const cuisine = (rest.cuisine || '').toLowerCase();
-    const name = (rest.name || '').toLowerCase();
-    const desc = (rest.description || '').toLowerCase();
+    const cuisine = String(rest.cuisine || '').toLowerCase();
+    const name = String(rest.name || '').toLowerCase();
+    const desc = String(rest.description || '').toLowerCase();
     const text = `${cuisine} ${name} ${desc}`;
 
     switch (selectedCategory) {
