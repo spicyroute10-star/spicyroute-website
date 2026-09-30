@@ -14,50 +14,66 @@ export default function AuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
-        // Check for error in URL first
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlError = urlParams.get('error_description') || urlParams.get('error');
-        if (urlError) {
-          throw new Error(decodeURIComponent(urlError.replace(/\+/g, ' ')));
-        }
+        const supabase = supabaseAuthService.supabase;
 
-        // Try PKCE code exchange first
-        const code = urlParams.get('code');
+        // Check for error in URL first (query params or hash)
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+
+        const urlError = urlParams.get('error_description') || urlParams.get('error')
+          || hashParams.get('error_description') || hashParams.get('error');
+        if (urlError) throw new Error(decodeURIComponent(urlError.replace(/\+/g, ' ')));
+
         let session = null;
 
-        if (code) {
-          const { data, error: exchangeError } = await supabaseAuthService.supabase.auth.exchangeCodeForSession(code);
-          if (!exchangeError && data?.session) {
-            session = data.session;
+        // --- Strategy 1: Implicit flow — tokens arrive in hash (#access_token=...)
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken) {
+          const { data, error: setErr } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+          if (!setErr && data?.session) session = data.session;
+        }
+
+        // --- Strategy 2: PKCE flow — code arrives in query (?code=...)
+        if (!session) {
+          const code = urlParams.get('code');
+          if (code) {
+            const { data, error: exchErr } = await supabase.auth.exchangeCodeForSession(code);
+            if (!exchErr && data?.session) session = data.session;
           }
         }
 
-        // Fallback: getSession()
+        // --- Strategy 3: getSession() — Supabase may have auto-detected tokens
         if (!session) {
-          const { data: sessionData } = await supabaseAuthService.supabase.auth.getSession();
-          session = sessionData?.session;
+          await new Promise(r => setTimeout(r, 500)); // small wait for Supabase to process hash
+          const { data } = await supabase.auth.getSession();
+          session = data?.session;
         }
 
-        // Fallback: wait for onAuthStateChange
+        // --- Strategy 4: Wait for onAuthStateChange
         if (!session) {
-          await new Promise((resolve) => {
-            const { data: listener } = supabaseAuthService.supabase.auth.onAuthStateChange((event, s) => {
+          session = await new Promise((resolve) => {
+            const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
               if (s?.user) {
-                session = s;
                 listener.subscription.unsubscribe();
-                resolve();
+                resolve(s);
               }
             });
-            setTimeout(() => { listener.subscription.unsubscribe(); resolve(); }, 4000);
+            setTimeout(() => { listener.subscription.unsubscribe(); resolve(null); }, 5000);
           });
         }
 
         if (session?.user) {
           const authUser = session.user;
           const userEmail = authUser.email;
-          const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || userEmail.split('@')[0];
+          const userName = authUser.user_metadata?.full_name
+            || authUser.user_metadata?.name
+            || userEmail.split('@')[0];
 
-          // Sync with backend to get our JWT
+          // Sync with backend to get JWT and role
           const syncRes = await fetchApi('/auth/oauth-sync', {
             method: 'POST',
             body: JSON.stringify({
@@ -71,7 +87,6 @@ export default function AuthCallbackPage() {
           if (syncRes.token && syncRes.user) {
             if (setSession) setSession(syncRes.token, syncRes.user);
 
-            // Role-based redirect
             const role = syncRes.user.role;
             const redirectPath = role === 'ADMIN' ? '/?view=admin'
               : role === 'VENDOR' ? '/?view=vendor'
@@ -79,21 +94,23 @@ export default function AuthCallbackPage() {
 
             if (isMounted) {
               setStatus('success');
-              setTimeout(() => { window.location.href = redirectPath; }, 800);
+              setTimeout(() => {
+                // Clear hash/params from URL then redirect
+                window.location.replace(redirectPath);
+              }, 800);
             }
-          } else if (isMounted) {
-            setStatus('success');
-            setTimeout(() => { window.location.href = '/'; }, 800);
+          } else {
+            throw new Error('Failed to sync with backend. Please try again.');
           }
         } else {
-          throw new Error('No session returned from Google. Please try again.');
+          throw new Error('No session found. Please try signing in again.');
         }
       } catch (err) {
         console.error('Auth callback error:', err);
         if (isMounted) {
           setStatus('error');
           setError(err.message || 'Authentication failed');
-          setTimeout(() => { window.location.href = '/'; }, 3000);
+          setTimeout(() => { window.location.replace('/'); }, 3000);
         }
       }
     };
@@ -112,7 +129,6 @@ export default function AuthCallbackPage() {
             <p className="text-sm text-gray-500">Please wait while we set up your account</p>
           </>
         )}
-
         {status === 'success' && (
           <>
             <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
@@ -120,7 +136,6 @@ export default function AuthCallbackPage() {
             <p className="text-sm text-gray-500">Redirecting you to the app...</p>
           </>
         )}
-
         {status === 'error' && (
           <>
             <XCircle className="w-12 h-12 text-rose-600 mx-auto" />

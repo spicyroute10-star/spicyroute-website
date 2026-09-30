@@ -4,7 +4,14 @@ import { SUPABASE_CONFIG, TABLES, ROLES } from '../config/supabase';
 
 class SupabaseAuthService {
   constructor() {
-    this.supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    this.supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+      auth: {
+        flowType: 'implicit',        // Works on all mobile browsers (no localStorage PKCE verifier needed)
+        detectSessionInUrl: true,    // Auto-detect tokens in URL hash after OAuth redirect
+        persistSession: true,
+        storage: window.localStorage
+      }
+    });
     this.currentUser = null;
     this.currentRole = null;
   }
