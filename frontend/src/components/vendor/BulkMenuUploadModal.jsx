@@ -27,7 +27,7 @@ const CATEGORIES = [
 
 function guessCategory(name, currentSection = 'Main') {
   const lower = name.toLowerCase();
-  if (/dosa|idli|vada|wada|puri|poori|upma|uttapam|parotta|tiffin|bhature|chole|poha|bonda/i.test(lower)) return 'Tiffins';
+  if (/dosa|dosal|idli|idly|vada|wada|puri|poori|upma|uttapam|pesara|pesarattu|parotta|tiffin|bhature|chole|poha|bonda|sambhar|karam/i.test(lower)) return 'Tiffins';
   if (/biryani|pulao|rice|fried\s*rice/i.test(lower)) return 'Biryani';
   if (/pizza/i.test(lower)) return 'Pizza';
   if (/burger|sandwich/i.test(lower)) return 'Burgers';
@@ -112,12 +112,12 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     const clean = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFD]/g, '');
     const rawLines = clean.split('\n').map(l => l.trim()).filter(Boolean);
     const items = [];
-    let currentCategory = 'Main';
+    let currentCategory = /(break\s*fast|tiffin|dosa|idli|idly|vada)/i.test(clean) ? 'Tiffins' : 'Main';
 
     // Helper to check if a string is a category header
     const detectCategoryHeader = (line) => {
       const u = line.toUpperCase();
-      if (/^(TIFFINS?|BREAKFAST|SOUTH\s*INDIAN|DOSAS?|IDLIS?)/i.test(u)) return 'Tiffins';
+      if (/^(TIFFINS?|BREAK\s*FAST|SOUTH\s*INDIAN|DOSAS?|IDLIS?|IDLYS?|MORNING)/i.test(u)) return 'Tiffins';
       if (/^(STARTERS?|APPETIZERS?|SOUPS?|TANDOOR)/i.test(u)) return 'Starters';
       if (/^(MAIN\s*COURSE|CURRIES|GRAVY|SPECIALS?|VEG\s*CURRIES|CHICKEN\s*CURRIES)/i.test(u)) return 'Main';
       if (/^(BIRYANI|RICE|PULAO|FRIED\s*RICE)/i.test(u)) return 'Biryani';
@@ -135,11 +135,20 @@ export default function BulkMenuUploadModal({ isOpen, onClose, onSuccess }) {
     };
 
     const cleanDishName = (str) => {
-      return str
+      let cleaned = str
         .replace(/^[\d.)\s•\-:–—]+/, '') // Remove leading numbers like "1.", "02)"
         .replace(/[.\-_:~|•\t+=—–]+$/g, '') // Remove trailing dots or dashes
         .replace(/^(HALF|FULL|REGULAR|LARGE|SMALL)\b\s*/i, '')
         .trim();
+
+      // Clean up common South Indian menu OCR patterns:
+      cleaned = cleaned.replace(/\bIdly\s*(\d)\b/i, 'Idly ($1 Pcs)');
+      cleaned = cleaned.replace(/\bIdli\s*(\d)\b/i, 'Idli ($1 Pcs)');
+      cleaned = cleaned.replace(/\bPoori\s*\(?(\d)\)?/i, 'Poori ($1 Pcs)');
+      cleaned = cleaned.replace(/\bEgg\s*Dosa[l]?\s*\(?\s*(\d)\s*Eggs?\)?/i, 'Egg Dosa ($1 Egg)');
+      cleaned = cleaned.replace(/\bDosal\b/i, 'Dosa');
+
+      return cleaned.trim();
     };
 
     // First pass: combine line i (dish name) with line i+1 (if line i+1 is strictly a price)
