@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, MapPin, Phone, FileText, Navigation, CheckCircle2, ShieldAlert, LogIn } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { fetchApi } from '../../api/client';
