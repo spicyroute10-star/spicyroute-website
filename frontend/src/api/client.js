@@ -1,11 +1,15 @@
 const getBaseUrl = () => {
-  // Use env variable if set (production/Vercel deployment)
+  // Use env variable if set (Vercel production deployment)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   // Native app (Capacitor)
-  if (window.location.protocol === 'file:' || window.Capacitor) {
+  if (window.Capacitor || window.location.protocol === 'file:') {
     return 'http://192.168.0.100:5000/api';
+  }
+  // If running on Vercel production (not localhost), use Render backend
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://spicyroute-website.onrender.com/api';
   }
   // Local dev: use Vite proxy
   return '/api';
@@ -14,7 +18,7 @@ const getBaseUrl = () => {
 export async function fetchApi(endpoint, options = {}) {
   const token = localStorage.getItem('token');
   const baseUrl = getBaseUrl();
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
