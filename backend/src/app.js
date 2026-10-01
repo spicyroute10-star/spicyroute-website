@@ -13,6 +13,10 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5000',
+  'https://spicyroute.in',
+  'http://spicyroute.in',
+  'https://www.spicyroute.in',
+  'http://www.spicyroute.in',
   'https://spicyroute-website-iota.vercel.app',
   'https://spicyroute-website.vercel.app',
   process.env.CLIENT_URL
@@ -23,8 +27,8 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, curl, Render health checks)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Allow all vercel preview deployments
-    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow all vercel preview deployments and spicyroute domains
+    if (origin.endsWith('.vercel.app') || origin.endsWith('spicyroute.in')) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
