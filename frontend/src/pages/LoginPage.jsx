@@ -62,6 +62,7 @@ export default function LoginPage({ onSuccess, onCancel }) {
     setError('');
     setLoading(true);
     try {
+      localStorage.setItem('pending_oauth_role', selectedRole);
       const res = await loginWithGoogle();
       if (res && res.success === false) {
         setError(res.error || 'Google Sign-In is not enabled or failed.');

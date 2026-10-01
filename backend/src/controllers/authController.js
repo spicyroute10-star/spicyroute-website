@@ -303,20 +303,37 @@ export const oauthSync = async (req, res) => {
       user = userByAuth;
     }
 
+    const targetRole = (role || 'CUSTOMER').toUpperCase();
+
     if (user) {
+      const updates = {};
       if (authId && !user.auth_id) {
-        await supabase.from('users').update({ auth_id: authId }).eq('id', user.id);
+        updates.auth_id = authId;
+      }
+      // Auto-assign ADMIN if spicyroute10@gmail.com
+      if (cleanEmail === 'spicyroute10@gmail.com' && user.role !== 'ADMIN') {
+        updates.role = 'ADMIN';
+        user.role = 'ADMIN';
+      } else if (targetRole === 'VENDOR' && user.role === 'CUSTOMER') {
+        // Vendor sign-in selected
+        updates.role = 'VENDOR';
+        user.role = 'VENDOR';
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const { data: updated } = await supabase.from('users').update(updates).eq('id', user.id).select().single();
+        if (updated) user = updated;
       }
     } else {
       const defaultPassword = await bcrypt.hash('oauth_user_' + Date.now(), 10);
-      const targetRole = (role || 'CUSTOMER').toUpperCase();
+      const initialRole = cleanEmail === 'spicyroute10@gmail.com' ? 'ADMIN' : targetRole;
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
           name: name || cleanEmail.split('@')[0],
           email: cleanEmail,
           password: defaultPassword,
-          role: targetRole,
+          role: initialRole,
           auth_id: authId || null,
           address: 'Current Location'
         })
@@ -329,11 +346,37 @@ export const oauthSync = async (req, res) => {
       user = newUser;
     }
 
-    const { data: restaurants } = await supabase
+    // Fetch existing restaurants
+    let { data: restaurants } = await supabase
       .from('restaurants')
       .select('id, name, is_approved, is_open')
       .eq('owner_id', user.id);
     
+    // If vendor has no restaurant yet, automatically create their restaurant profile!
+    if (user.role === 'VENDOR' && (!restaurants || restaurants.length === 0)) {
+      const defaultRestName = `${user.name || 'My'}'s Kitchen`;
+      const { data: newRest } = await supabase
+        .from('restaurants')
+        .insert({
+          name: defaultRestName,
+          description: `Fresh delicious specialties by ${user.name || 'Chef'}`,
+          cuisine: 'Multi-Cuisine & Specials',
+          address: user.address || 'Campus Hub',
+          phone: user.phone || '9876543210',
+          rating: 4.8,
+          is_open: true,
+          is_approved: true,
+          commission_rate: 15,
+          image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+          opening_hours: '10:00 AM - 11:00 PM',
+          owner_id: user.id
+        })
+        .select('id, name, is_approved, is_open')
+        .single();
+
+      restaurants = newRest ? [newRest] : [];
+    }
+
     user.restaurants = restaurants || [];
 
     const secret = process.env.JWT_SECRET || 'super_secret_food_delivery_jwt_key_2026';

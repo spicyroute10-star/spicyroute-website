@@ -73,6 +73,9 @@ export default function AuthCallbackPage() {
             || authUser.user_metadata?.name
             || userEmail.split('@')[0];
 
+          const pendingRole = localStorage.getItem('pending_oauth_role') || 'CUSTOMER';
+          try { localStorage.removeItem('pending_oauth_role'); } catch (e) {}
+
           // Sync with backend to get JWT and role
           const syncRes = await fetchApi('/auth/oauth-sync', {
             method: 'POST',
@@ -80,7 +83,7 @@ export default function AuthCallbackPage() {
               email: userEmail,
               name: userName,
               authId: authUser.id,
-              role: 'CUSTOMER'
+              role: pendingRole
             })
           });
 
