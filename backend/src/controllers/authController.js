@@ -192,6 +192,31 @@ export const register = async (req, res) => {
       return res.status(500).json({ error: insertError?.message || 'Failed to create user account' });
     }
 
+    let userRestaurants = [];
+    if (user.role === 'VENDOR') {
+      const defaultRestName = `${user.name || 'My'}'s Kitchen`;
+      const { data: newRest } = await supabase
+        .from('restaurants')
+        .insert({
+          name: defaultRestName,
+          description: `Fresh delicious specialties by ${user.name || 'Chef'}`,
+          cuisine: 'Multi-Cuisine & Specials',
+          address: user.address || 'Campus Hub',
+          phone: user.phone || '9876543210',
+          rating: 4.8,
+          is_open: true,
+          is_approved: false, // Requires Super Admin approval before appearing on storefront
+          commission_rate: 15,
+          image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+          opening_hours: '10:00 AM - 11:00 PM',
+          owner_id: user.id
+        })
+        .select('id, name, is_approved, is_open')
+        .single();
+
+      if (newRest) userRestaurants = [newRest];
+    }
+
     const secret = process.env.JWT_SECRET || 'super_secret_food_delivery_jwt_key_2026';
     const token = jwt.sign({ userId: user.id, role: user.role }, secret, { expiresIn: '7d' });
 
@@ -205,7 +230,7 @@ export const register = async (req, res) => {
         role: user.role,
         phone: user.phone,
         address: user.address,
-        restaurants: []
+        restaurants: userRestaurants
       }
     });
   } catch (error) {
@@ -365,7 +390,7 @@ export const oauthSync = async (req, res) => {
           phone: user.phone || '9876543210',
           rating: 4.8,
           is_open: true,
-          is_approved: true,
+          is_approved: false, // Requires Super Admin approval before appearing on storefront
           commission_rate: 15,
           image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
           opening_hours: '10:00 AM - 11:00 PM',

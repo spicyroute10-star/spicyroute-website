@@ -5,7 +5,7 @@ import LiveKanbanBoard from '../components/vendor/LiveKanbanBoard';
 import MenuManagement from '../components/vendor/MenuManagement';
 import RestaurantProfile from '../components/vendor/RestaurantProfile';
 import DeliveryPartnerRoster from '../components/vendor/DeliveryPartnerRoster';
-import { Store, Download, RefreshCw, Layers, Utensils, Truck, Volume2, VolumeX, BellRing, AlertCircle, Loader2, X } from 'lucide-react';
+import { Store, Download, RefreshCw, Layers, Utensils, Truck, Volume2, VolumeX, BellRing, AlertCircle, Loader2, X, Clock } from 'lucide-react';
 
 export default function VendorPortalPage() {
   const [profile, setProfile] = useState(null);
@@ -295,6 +295,31 @@ export default function VendorPortalPage() {
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+      )}
+
+      {/* Account Pending Approval Banner */}
+      {(!profile?.is_approved && !profile?.isApproved) && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-200">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black flex-shrink-0 animate-pulse shadow-md shadow-amber-500/20">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 border border-amber-300">
+                  ⏳ Application Under Review
+                </span>
+                <span className="text-xs font-extrabold text-amber-900">Pending Super Admin Verification</span>
+              </div>
+              <h4 className="text-sm font-extrabold text-gray-900 mt-0.5">
+                Your Restaurant Profile is Waiting for Super Admin Approval
+              </h4>
+              <p className="text-xs font-semibold text-gray-600 mt-0.5 max-w-3xl leading-relaxed">
+                You can upload menu card photos, configure dishes, and set prices below in advance. Once the Super Admin reviews and accepts your restaurant, it will immediately appear live on the Customer Storefront!
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
