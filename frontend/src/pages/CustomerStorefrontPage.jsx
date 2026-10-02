@@ -167,7 +167,7 @@ export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
       subtitle: 'Zero hidden fees, transparent menu prices & effortless group orders',
       tag: 'HONEST PRICING',
       bgClass: 'from-rose-700 via-pink-700 to-amber-600',
-      imageUrl: 'https://images.unsplash.com/photo-1556742049-0a67e557224f?w=800&auto=format&fit=crop&q=80'
+      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80'
     }
   ];
 
@@ -370,8 +370,16 @@ export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
             <p className="text-xs font-semibold text-rose-100 line-clamp-2">{currentBanner.subtitle}</p>
           </div>
 
-          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-xl border-2 border-white/30 flex-shrink-0">
-            <img src={currentBanner.imageUrl} alt={currentBanner.title} className="w-full h-full object-cover" />
+          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-xl border-2 border-white/30 flex-shrink-0 bg-white/10 flex items-center justify-center">
+            <img 
+              src={currentBanner.imageUrl} 
+              alt={currentBanner.title} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80';
+              }}
+              className="w-full h-full object-cover" 
+            />
           </div>
         </div>
 
