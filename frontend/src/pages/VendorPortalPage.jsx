@@ -5,6 +5,7 @@ import LiveKanbanBoard from '../components/vendor/LiveKanbanBoard';
 import MenuManagement from '../components/vendor/MenuManagement';
 import RestaurantProfile from '../components/vendor/RestaurantProfile';
 import DeliveryPartnerRoster from '../components/vendor/DeliveryPartnerRoster';
+import ReportDownloaderModal from '../components/admin/ReportDownloaderModal';
 import { Store, Download, RefreshCw, Layers, Utensils, Truck, Volume2, VolumeX, BellRing, AlertCircle, Loader2, X, Clock } from 'lucide-react';
 
 export default function VendorPortalPage() {
@@ -14,6 +15,7 @@ export default function VendorPortalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban'); // kanban, menu, drivers
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try {
@@ -379,19 +381,11 @@ export default function VendorPortalPage() {
           </button>
 
           <button
-            onClick={() => handleExportVendorReport('csv')}
-            disabled={exporting}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all border border-white/20 disabled:opacity-50"
+            onClick={() => setIsReportModalOpen(true)}
+            className="px-4 py-2.5 bg-white text-gray-900 hover:bg-gray-100 rounded-xl text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95"
           >
-            <Download className="w-4 h-4" /> Download Earnings CSV
-          </button>
-
-          <button
-            onClick={() => handleExportVendorReport('pdf')}
-            disabled={exporting}
-            className="px-4 py-2.5 bg-white text-gray-900 hover:bg-gray-100 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md transition-all active:scale-95 disabled:opacity-50"
-          >
-            <Download className="w-4 h-4 text-rose-600" /> Export PDF Log
+            <Download className="w-4 h-4 text-rose-600" />
+            <span>Download Sales Reports (Day / Week / Month)</span>
           </button>
         </div>
       </div>
@@ -443,6 +437,15 @@ export default function VendorPortalPage() {
       ) : (
         <DeliveryPartnerRoster />
       )}
+
+      {/* Flexible Sales & Earnings Report Generator Modal */}
+      <ReportDownloaderModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        isVendor={true}
+        restaurantName={profile?.name}
+      />
+
     </div>
   );
 }

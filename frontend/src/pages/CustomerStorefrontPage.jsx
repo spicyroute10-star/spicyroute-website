@@ -9,7 +9,7 @@ import {
   Navigation, Loader2, Check 
 } from 'lucide-react';
 
-export default function CustomerStorefrontPage({ onOpenCart }) {
+export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -127,47 +127,47 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
     localStorage.setItem('user_delivery_address', address);
   };
 
-  // Promotional Banner Carousel Slides
+  // Promotional Banner Carousel Slides - App Features & Benefits
   const bannerSlides = [
     {
       id: 1,
-      title: 'Authentic Hyderabadi Biryani',
-      subtitle: 'Flat ₹150 OFF on orders above ₹399',
-      tag: 'HOT DEAL',
-      bgClass: 'from-amber-600 via-rose-600 to-rose-700',
-      imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&auto=format&fit=crop&q=80'
+      title: '⚡ Food Delivered in 20 Mins!',
+      subtitle: 'Lightning-fast delivery straight to your hostel or campus doorstep',
+      tag: '20 MIN EXPRESS',
+      bgClass: 'from-rose-600 via-amber-600 to-orange-500',
+      imageUrl: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=800&auto=format&fit=crop&q=80'
     },
     {
       id: 2,
-      title: 'Special Noodle & Asian Delights',
-      subtitle: 'Fresh Wok-Tossed Gourmet Noodles & Ramen',
-      tag: 'POPULAR',
-      bgClass: 'from-amber-500 via-amber-600 to-rose-600',
-      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&auto=format&fit=crop&q=80'
+      title: '🍔 All Campus Spots in 1 Place',
+      subtitle: 'Explore campus canteens, dhabas, tea stalls & night kitchens',
+      tag: 'ONE-STOP FOOD',
+      bgClass: 'from-amber-600 via-rose-600 to-red-700',
+      imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80'
     },
     {
       id: 3,
-      title: 'Artisanal Woodfired Pizza',
-      subtitle: 'Buy 1 Get 1 Free on Medium Pizzas',
-      tag: 'BOGO',
-      bgClass: 'from-rose-700 via-rose-600 to-amber-600',
-      imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80'
+      title: '📱 1-Tap Home Screen App',
+      subtitle: 'Install Spicy Route PWA on your phone for instant 1-tap ordering & alerts',
+      tag: 'FAST 1-TAP APP',
+      bgClass: 'from-red-600 via-rose-700 to-pink-600',
+      imageUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&auto=format&fit=crop&q=80'
     },
     {
       id: 4,
-      title: 'South Indian Special Thali',
-      subtitle: 'Complete Balanced Meals with Unlimited Rice',
-      tag: 'BESTSELLER',
-      bgClass: 'from-amber-700 via-rose-600 to-rose-800',
-      imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80'
+      title: '📍 Real-Time Live Order Tracking',
+      subtitle: 'Watch your meal move live from the kitchen wok to your hands',
+      tag: 'LIVE GPS UPDATES',
+      bgClass: 'from-amber-700 via-orange-600 to-rose-600',
+      imageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?w=800&auto=format&fit=crop&q=80'
     },
     {
       id: 5,
-      title: 'Craft Wagyu Burgers',
-      subtitle: 'Truffle Fries & Hand-spun Milkshakes',
-      tag: 'COMBO',
-      bgClass: 'from-rose-800 via-rose-600 to-amber-500',
-      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80'
+      title: '💰 Student Pocket-Friendly Deals',
+      subtitle: 'Zero hidden fees, transparent menu prices & effortless group orders',
+      tag: 'HONEST PRICING',
+      bgClass: 'from-rose-700 via-pink-700 to-amber-600',
+      imageUrl: 'https://images.unsplash.com/photo-1556742049-0a67e557224f?w=800&auto=format&fit=crop&q=80'
     }
   ];
 
@@ -526,6 +526,56 @@ export default function CustomerStorefrontPage({ onOpenCart }) {
         onSelectAddress={handleSelectAddress}
         currentAddress={selectedLocation}
       />
+
+      {/* Storefront Footer with Compliant Legal Links */}
+      <footer className="mt-16 pt-10 pb-8 border-t border-gray-200/80 text-center space-y-4">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-rose-600/30">
+            🌶️
+          </div>
+          <span className="text-base font-black tracking-tight text-gray-900">Spicy Route</span>
+        </div>
+        
+        <p className="text-xs font-semibold text-gray-500 max-w-md mx-auto">
+          Lightning-fast 20-minute campus food delivery. Connecting hunger to hot meals with honest student pricing.
+        </p>
+
+        {/* Legal Policies Navigation Links */}
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-extrabold text-gray-600 pt-2">
+          <button
+            onClick={() => onOpenLegal && onOpenLegal('Terms & Conditions')}
+            className="hover:text-rose-600 transition-colors"
+          >
+            Terms & Conditions
+          </button>
+          <span className="text-gray-300">•</span>
+          <button
+            onClick={() => onOpenLegal && onOpenLegal('Privacy Policy')}
+            className="hover:text-rose-600 transition-colors"
+          >
+            Privacy Policy
+          </button>
+          <span className="text-gray-300">•</span>
+          <button
+            onClick={() => onOpenLegal && onOpenLegal('Cancellation & Refund')}
+            className="hover:text-rose-600 transition-colors"
+          >
+            Cancellation & Refund
+          </button>
+          <span className="text-gray-300">•</span>
+          <button
+            onClick={() => onOpenLegal && onOpenLegal('FSSAI & Compliance')}
+            className="hover:text-rose-600 transition-colors"
+          >
+            FSSAI & Grievance
+          </button>
+        </div>
+
+        <div className="pt-2 text-[11px] text-gray-400 font-medium">
+          <p>© 2026 Spicy Route (<span className="text-gray-600 font-bold">spicyroute.in</span>). All rights reserved.</p>
+          <p className="mt-0.5">Need help? Contact our campus desk at <a href="mailto:spicyroute10@gmail.com" className="text-rose-600 underline font-bold">spicyroute10@gmail.com</a></p>
+        </div>
+      </footer>
 
     </div>
   );

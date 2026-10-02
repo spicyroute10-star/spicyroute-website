@@ -93,7 +93,7 @@ export const generatePDFReport = async (res, orders, filterInfo = {}) => {
   doc.fillColor('#ffffff')
      .fontSize(20)
      .font('Helvetica-Bold')
-     .text('FOOD EXPRESS - SALES & ORDER REPORT (INR)', 55, 55);
+     .text('SPICY ROUTE - SALES & EARNINGS REPORT (INR)', 55, 55);
   
   doc.fontSize(10)
      .font('Helvetica')
@@ -180,7 +180,7 @@ export const generatePDFReport = async (res, orders, filterInfo = {}) => {
   }
 
   doc.moveDown(2);
-  doc.fillColor('#9ca3af').fontSize(8).text('Food Express Admin Analytics & Automated Reporting Engine v1.0', 45, 800, { align: 'center' });
+  doc.fillColor('#9ca3af').fontSize(8).text('Spicy Route Financial Analytics & Automated Reporting Engine v2.0', 45, 800, { align: 'center' });
 
   doc.end();
 };

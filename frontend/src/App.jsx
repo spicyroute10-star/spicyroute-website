@@ -9,6 +9,7 @@ import CustomerStorefrontPage from './pages/CustomerStorefrontPage';
 import FavouritesPage from './pages/FavouritesPage';
 import ProfileMenuPage from './pages/ProfileMenuPage';
 import BlankLegalPage from './pages/BlankLegalPage';
+import LegalPolicyPage from './pages/LegalPolicyPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
@@ -73,13 +74,17 @@ function MainApp() {
     });
   };
 
-  const handleOpenLegal = (title) => {
-    setLegalTitle(title);
-    if (title === 'Privacy Policy') {
-      setActiveView('privacy');
-    } else {
-      setActiveView('terms');
-    }
+  const [legalTab, setLegalTab] = useState('terms');
+
+  const handleOpenLegal = (tabOrTitle) => {
+    let tab = 'terms';
+    const lower = String(tabOrTitle).toLowerCase();
+    if (lower.includes('privacy')) tab = 'privacy';
+    else if (lower.includes('refund') || lower.includes('cancel')) tab = 'refund';
+    else if (lower.includes('compliance') || lower.includes('fssai')) tab = 'compliance';
+    setLegalTab(tab);
+    setLegalTitle(tabOrTitle);
+    setActiveView('legal');
   };
 
   const handleOrderPlaced = (order) => {
@@ -161,12 +166,13 @@ function MainApp() {
       );
     }
 
-    if (activeView === 'terms') {
-      return <BlankLegalPage title="Terms & Conditions" onBack={() => setActiveView('menu-profile')} />;
-    }
-
-    if (activeView === 'privacy') {
-      return <BlankLegalPage title="Privacy Policy" onBack={() => setActiveView('menu-profile')} />;
+    if (activeView === 'legal' || activeView === 'terms' || activeView === 'privacy') {
+      return (
+        <LegalPolicyPage
+          initialTab={legalTab || (activeView === 'privacy' ? 'privacy' : 'terms')}
+          onBack={() => setActiveView('menu-profile')}
+        />
+      );
     }
 
     if (activeView === 'my-orders') {
@@ -178,6 +184,7 @@ function MainApp() {
         onOpenCart={() => setIsCartOpen(true)}
         favourites={favourites}
         onToggleFavourite={handleToggleFavourite}
+        onOpenLegal={handleOpenLegal}
       />
     );
   };

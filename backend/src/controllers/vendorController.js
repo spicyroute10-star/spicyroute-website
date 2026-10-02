@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase.js';
 import { notifyOrderStatusUpdated } from '../sockets/socketHandler.js';
 import { getFilteredOrderLogs, generateCSVReport, generatePDFReport } from '../services/reportService.js';
+import { formatDirectImageUrl } from '../utils/imageUrl.js';
 
 /**
  * Resolves a vendor's single primary restaurant profile safely without creating duplicates
@@ -128,7 +129,7 @@ export const updateVendorProfile = async (req, res) => {
     if (phone) updateData.phone = phone;
     if (typeof isOpen === 'boolean') updateData.is_open = isOpen;
     if (openingHours) updateData.opening_hours = openingHours;
-    if (imageUrl) updateData.image_url = imageUrl;
+    if (imageUrl) updateData.image_url = formatDirectImageUrl(imageUrl);
 
     const { data: updated, error: updateErr } = await supabase
       .from('restaurants')
@@ -421,7 +422,7 @@ export const createMenuItem = async (req, res) => {
         description: description || '',
         price: parseFloat(price),
         category: category || 'Main',
-        image_url: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+        image_url: formatDirectImageUrl(imageUrl) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
         is_available: isAvailable
       })
       .select()
@@ -552,7 +553,7 @@ export const updateMenuItem = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = parseFloat(price);
     if (category) updateData.category = category;
-    if (imageUrl !== undefined) updateData.image_url = imageUrl;
+    if (imageUrl !== undefined) updateData.image_url = formatDirectImageUrl(imageUrl);
     if (typeof isAvailable === 'boolean') updateData.is_available = isAvailable;
 
     const { data: item, error: updateErr } = await supabase

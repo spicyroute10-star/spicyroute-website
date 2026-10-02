@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   User, Star, ShoppingBag, Wallet, Sun, Moon, 
   MapPin, Settings, Ticket, UserCheck, Store, 
-  FileText, Shield, ChevronRight, LogOut, Layers, UtensilsCrossed, Bike, Check, X, Smartphone
+  FileText, Shield, ChevronRight, LogOut, Layers, UtensilsCrossed, Bike, Check, X, Smartphone,
+  RefreshCw, Building2
 } from 'lucide-react';
 import { usePwaInstall } from '../context/PwaInstallContext';
 
@@ -268,7 +269,7 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
 
         {/* Section: Help & Support */}
         <div className="space-y-2">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Help & Support</h2>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Legal & Compliance</h2>
           <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden divide-y divide-gray-100">
             
             <button 
@@ -289,6 +290,28 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
               <div className="flex items-center gap-3">
                 <Shield className="w-4 h-4 text-gray-400" />
                 <span className="text-xs sm:text-sm font-bold text-gray-800">Privacy Policy</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300" />
+            </button>
+
+            <button 
+              onClick={() => onOpenLegal('Cancellation & Refund')}
+              className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+                <span className="text-xs sm:text-sm font-bold text-gray-800">Cancellation & Refund Policy</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300" />
+            </button>
+
+            <button 
+              onClick={() => onOpenLegal('FSSAI & Compliance')}
+              className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Building2 className="w-4 h-4 text-gray-400" />
+                <span className="text-xs sm:text-sm font-bold text-gray-800">FSSAI Standards & Grievance</span>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-300" />
             </button>

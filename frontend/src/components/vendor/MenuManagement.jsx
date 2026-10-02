@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Utensils, Check, X, AlertCircle, Upload, Zap, Camera } from 'lucide-react';
 import { fetchApi } from '../../api/client';
 import BulkMenuUploadModal from './BulkMenuUploadModal';
+import { formatDirectImageUrl } from '../../utils/imageUrl';
 
 export default function MenuManagement({ menuItems = [], onRefresh }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,15 +63,19 @@ export default function MenuManagement({ menuItems = [], onRefresh }) {
     e.preventDefault();
     try {
       setLoading(true);
+      const payload = {
+        ...formData,
+        imageUrl: formatDirectImageUrl(formData.imageUrl)
+      };
       if (editingItem) {
         await fetchApi(`/vendor/menu/${editingItem.id}`, {
           method: 'PUT',
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
       } else {
         await fetchApi('/vendor/menu', {
           method: 'POST',
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
       }
       setIsModalOpen(false);
@@ -320,13 +325,27 @@ export default function MenuManagement({ menuItems = [], onRefresh }) {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-500 uppercase">Image URL</label>
-                <input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold mt-1"
-                />
+                <label className="block text-[11px] font-bold text-gray-500 uppercase flex items-center justify-between">
+                  <span>Image URL</span>
+                  <span className="text-[10px] text-rose-600 font-semibold lowercase">Google Drive links supported</span>
+                </label>
+                <div className="flex gap-2 items-center mt-1">
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/file/d/... or image link"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    className="flex-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold"
+                  />
+                  {formData.imageUrl && (
+                    <img
+                      src={formatDirectImageUrl(formData.imageUrl)}
+                      alt="Preview"
+                      className="w-8 h-8 rounded-lg object-cover border border-gray-300 flex-shrink-0"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-2">
