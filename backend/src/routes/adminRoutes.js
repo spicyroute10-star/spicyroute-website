@@ -5,7 +5,8 @@ import {
   exportReport,
   updateRestaurantControl,
   updateGlobalCommissionRate,
-  onboardVendor
+  onboardVendor,
+  deleteRestaurant
 } from '../controllers/adminController.js';
 import { authenticate } from '../middleware/auth.js';
 import { authorizeRoles } from '../middleware/rbac.js';
@@ -19,6 +20,7 @@ router.get('/dashboard-stats', getDashboardStats);
 router.get('/orders-by-restaurant', getOrdersByRestaurant);
 router.get('/reports/export', exportReport);
 router.put('/restaurants/:id/status', updateRestaurantControl);
+router.delete('/restaurants/:id', deleteRestaurant);
 router.put('/settings/commission', updateGlobalCommissionRate);
 router.post('/restaurants/onboard', onboardVendor);
 

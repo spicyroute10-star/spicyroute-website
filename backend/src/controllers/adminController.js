@@ -286,3 +286,101 @@ export const onboardVendor = async (req, res) => {
     res.status(500).json({ error: 'Failed to onboard vendor: ' + error.message });
   }
 };
+
+/**
+ * DELETE /api/admin/restaurants/:id
+ * Permanently delete a restaurant and its related records (rejection/deletion)
+ */
+export const deleteRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = parseInt(id, 10);
+
+    if (isNaN(restaurantId)) {
+      return res.status(400).json({ error: 'Invalid restaurant ID' });
+    }
+
+    // 1. Fetch restaurant to verify existence and get owner_id
+    const { data: restaurant, error: fetchErr } = await supabase
+      .from('restaurants')
+      .select('id, name, owner_id')
+      .eq('id', restaurantId)
+      .single();
+
+    if (fetchErr || !restaurant) {
+      return res.status(404).json({ error: 'Restaurant not found' });
+    }
+
+    // 2. Delete ratings / reviews
+    await supabase
+      .from('restaurant_ratings')
+      .delete()
+      .eq('restaurant_id', restaurantId);
+
+    // 3. Delete order items for orders from this restaurant
+    const { data: restaurantOrders } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('restaurant_id', restaurantId);
+
+    if (restaurantOrders && restaurantOrders.length > 0) {
+      const orderIds = restaurantOrders.map(o => o.id);
+      await supabase
+        .from('order_items')
+        .delete()
+        .in('order_id', orderIds);
+
+      // Delete orders
+      await supabase
+        .from('orders')
+        .delete()
+        .eq('restaurant_id', restaurantId);
+    }
+
+    // 4. Delete menu items
+    await supabase
+      .from('menu_items')
+      .delete()
+      .eq('restaurant_id', restaurantId);
+
+    // 5. Delete delivery partners
+    await supabase
+      .from('delivery_partners')
+      .delete()
+      .eq('restaurant_id', restaurantId);
+
+    // 6. Delete the restaurant record
+    const { error: deleteErr } = await supabase
+      .from('restaurants')
+      .delete()
+      .eq('id', restaurantId);
+
+    if (deleteErr) {
+      console.error('Error deleting restaurant:', deleteErr);
+      throw deleteErr;
+    }
+
+    // 7. Check if owner has any remaining restaurants. If not, revert user role back to CUSTOMER
+    if (restaurant.owner_id) {
+      const { data: remainingRestaurants } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('owner_id', restaurant.owner_id);
+
+      if (!remainingRestaurants || remainingRestaurants.length === 0) {
+        await supabase
+          .from('users')
+          .update({ role: 'CUSTOMER' })
+          .eq('id', restaurant.owner_id);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Restaurant "${restaurant.name}" has been permanently deleted.`
+    });
+  } catch (error) {
+    console.error('Error in deleteRestaurant:', error);
+    res.status(500).json({ error: 'Failed to delete restaurant: ' + (error.message || error) });
+  }
+};

@@ -5,7 +5,7 @@ import MetricsGrid from '../components/admin/MetricsGrid';
 import RestaurantPerformanceTable from '../components/admin/RestaurantPerformanceTable';
 import ReportDownloaderModal from '../components/admin/ReportDownloaderModal';
 import VendorOnboardingModal from '../components/admin/VendorOnboardingModal';
-import { Download, UserPlus, RefreshCw, Settings, ShieldAlert, Sparkles, Loader2, CheckCircle, Store, Clock, BellRing } from 'lucide-react';
+import { Download, UserPlus, RefreshCw, Settings, ShieldAlert, Sparkles, Loader2, CheckCircle, Store, Clock, BellRing, Trash2 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState(null);
@@ -20,6 +20,9 @@ export default function AdminDashboardPage() {
 
   const handleApproveVendor = async (restaurantId, restaurantName) => {
     try {
+      // Optimistic update
+      setDistribution(prev => (Array.isArray(prev) ? prev.map(r => ((r.restaurantId || r.id) === restaurantId ? { ...r, isApproved: true, is_approved: true } : r)) : []));
+
       await fetchApi(`/admin/restaurants/${restaurantId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ isApproved: true })
@@ -28,19 +31,24 @@ export default function AdminDashboardPage() {
       loadData();
     } catch (err) {
       alert('Error approving vendor: ' + err.message);
+      loadData();
     }
   };
 
   const handleRejectVendor = async (restaurantId, restaurantName) => {
-    if (!window.confirm(`Are you sure you want to reject/suspend "${restaurantName}"?`)) return;
+    if (!window.confirm(`Are you sure you want to reject and delete "${restaurantName}"? This will permanently delete the restaurant.`)) return;
     try {
-      await fetchApi(`/admin/restaurants/${restaurantId}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ isApproved: false })
+      // Optimistically remove from state so the card vanishes immediately
+      setDistribution(prev => (Array.isArray(prev) ? prev.filter(r => (r.restaurantId || r.id) !== restaurantId) : []));
+
+      await fetchApi(`/admin/restaurants/${restaurantId}`, {
+        method: 'DELETE'
       });
+      alert(`🗑️ "${restaurantName}" has been rejected and deleted.`);
       loadData();
     } catch (err) {
-      alert('Error updating vendor: ' + err.message);
+      alert('Error deleting vendor: ' + err.message);
+      loadData();
     }
   };
 
@@ -232,10 +240,11 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => handleRejectVendor(vendor.restaurantId, vendor.restaurantName)}
-                    className="py-2 px-3 bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-600 font-bold text-xs rounded-xl transition-all"
-                    title="Reject Application"
+                    className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer border border-rose-200"
+                    title="Reject and Permanently Delete"
                   >
-                    Reject
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Reject</span>
                   </button>
                 </div>
               </div>

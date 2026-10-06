@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, CheckCircle, XCircle, Edit, DollarSign, Store, ShieldAlert } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Edit, DollarSign, Store, ShieldAlert, Trash2 } from 'lucide-react';
 import { fetchApi } from '../../api/client';
 
 export default function RestaurantPerformanceTable({ distribution, onRefresh }) {
@@ -48,6 +48,22 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
       onRefresh();
     } catch (err) {
       alert('Error updating commission rate: ' + err.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteRestaurant = async (restaurantId, restaurantName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${restaurantName}"? This action cannot be undone.`)) return;
+    try {
+      setUpdating(true);
+      await fetchApi(`/admin/restaurants/${restaurantId}`, {
+        method: 'DELETE'
+      });
+      alert(`🗑️ "${restaurantName}" has been permanently deleted.`);
+      onRefresh();
+    } catch (err) {
+      alert('Error deleting restaurant: ' + err.message);
     } finally {
       setUpdating(false);
     }
@@ -188,17 +204,27 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
 
                   {/* Admin Action */}
                   <td className="py-4 px-6 text-center">
-                    <button
-                      onClick={() => handleToggleStatus(r?.restaurantId, r?.isApproved, r?.isOpen)}
-                      disabled={updating}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                        r?.isApproved
-                          ? 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200'
-                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                      }`}
-                    >
-                      {r?.isApproved ? 'Suspend Vendor' : 'Approve Vendor'}
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleToggleStatus(r?.restaurantId, r?.isApproved, r?.isOpen)}
+                        disabled={updating}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                          r?.isApproved
+                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200'
+                            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        }`}
+                      >
+                        {r?.isApproved ? 'Suspend' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRestaurant(r?.restaurantId, r?.restaurantName)}
+                        disabled={updating}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                        title="Permanently Delete Restaurant"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
