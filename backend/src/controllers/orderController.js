@@ -67,13 +67,20 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    const deliveryFee = 3.99;
-    const tax = Math.round(subtotal * 0.08 * 100) / 100;
-    const total = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
+    // New Business Model:
+    // 1. Commission is Application Charges: Fixed ₹5 per item ordered (how many items, that many ₹5).
+    // 2. Restaurant menu price is unchanged.
+    // 3. Customer pays: subtotal + applicationCharges + deliveryFee.
+    // 4. Vendor receives 100% of the food subtotal (0% commission deduction).
+    const totalItemCount = orderItemsData.reduce((acc, oi) => acc + oi.quantity, 0);
+    const applicationCharges = totalItemCount * 5.0;
+    const deliveryFee = req.body.deliveryFee !== undefined ? parseFloat(req.body.deliveryFee) : 40.0;
+    const tax = 0.0;
+    const total = Math.round((subtotal + applicationCharges + deliveryFee + tax) * 100) / 100;
 
-    const commissionRate = restaurant.commission_rate || 15.0;
-    const commissionAmount = Math.round((subtotal * (commissionRate / 100)) * 100) / 100;
-    const vendorEarnings = Math.round((total - commissionAmount) * 100) / 100;
+    const commissionRate = 0.0; // 0% percentage commission
+    const commissionAmount = Math.round(applicationCharges * 100) / 100; // Platform earns ₹5 per item
+    const vendorEarnings = Math.round(subtotal * 100) / 100; // Vendor gets full food menu subtotal
 
     const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
 

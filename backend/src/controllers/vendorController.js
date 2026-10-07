@@ -122,9 +122,9 @@ export const updateVendorProfile = async (req, res) => {
     const { name, description, cuisine, address, phone, isOpen, openingHours, imageUrl } = req.body;
 
     const updateData = {};
-    if (name) updateData.name = name;
+    if (name && name.trim()) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description;
-    if (cuisine) updateData.cuisine = cuisine;
+    if (cuisine !== undefined) updateData.cuisine = cuisine.trim();
     if (address) updateData.address = address;
     if (phone) updateData.phone = phone;
     if (typeof isOpen === 'boolean') updateData.is_open = isOpen;

@@ -106,7 +106,7 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
               <th className="py-3.5 px-4 text-center">Total Orders</th>
               <th className="py-3.5 px-4 text-center">Active Orders</th>
               <th className="py-3.5 px-4 text-right">Revenue (GMV)</th>
-              <th className="py-3.5 px-4 text-center">Commission Rate</th>
+              <th className="py-3.5 px-4 text-center">Application Fee</th>
               <th className="py-3.5 px-4 text-right">Platform Earned</th>
               <th className="py-3.5 px-6 text-center">Admin Action</th>
             </tr>
@@ -161,40 +161,11 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
                     ₹{Number(r?.totalRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
 
-                  {/* Commission Rate (%) */}
+                  {/* Application Fee */}
                   <td className="py-4 px-4 text-center">
-                    {editingId === r?.restaurantId ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <input
-                          type="number"
-                          step="0.5"
-                          value={commissionRateInput}
-                          onChange={(e) => setCommissionRateInput(e.target.value)}
-                          className="w-16 px-1.5 py-1 border border-rose-300 rounded text-center text-xs font-bold focus:outline-none"
-                        />
-                        <button
-                          onClick={() => handleSaveCommission(r?.restaurantId)}
-                          disabled={updating}
-                          className="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-1 font-bold text-gray-800">
-                        <span>{Number(r?.commissionRate ?? 15)}%</span>
-                        <button
-                          onClick={() => {
-                            setEditingId(r?.restaurantId);
-                            setCommissionRateInput((r?.commissionRate ?? 15).toString());
-                          }}
-                          className="text-gray-400 hover:text-rose-600 p-0.5"
-                          title="Edit Commission Rate"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-extrabold">
+                      ₹5 / item
+                    </span>
                   </td>
 
                   {/* Platform Earned */}

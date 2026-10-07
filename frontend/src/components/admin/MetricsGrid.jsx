@@ -25,9 +25,9 @@ export default function MetricsGrid({ stats }) {
       bgColor: 'bg-emerald-50'
     },
     {
-      title: 'Platform Commission Earned',
+      title: 'Application Charges Earned',
       value: `₹${totalCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      subtitle: `Global Rate: ${globalCommissionRate}%`,
+      subtitle: '₹5 / Item Fee (0% Vendor Cut)',
       icon: TrendingUp,
       color: 'bg-rose-500',
       textColor: 'text-rose-600',

@@ -75,10 +75,13 @@ export const CartProvider = ({ children }) => {
     setRestaurant(null);
   };
 
+  const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Platform Application Charges: Fixed ₹5 per item ordered
+  const applicationCharges = itemCount * 5.0;
   const deliveryFee = cartItems.length > 0 ? 40.00 : 0;
-  const tax = Math.round(subtotal * 0.05 * 100) / 100;
-  const total = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
+  const tax = 0;
+  const total = Math.round((subtotal + applicationCharges + deliveryFee) * 100) / 100;
 
   return (
     <CartContext.Provider value={{
@@ -89,10 +92,11 @@ export const CartProvider = ({ children }) => {
       removeFromCart,
       clearCart,
       subtotal,
+      applicationCharges,
       deliveryFee,
       tax,
       total,
-      itemCount: cartItems.reduce((acc, item) => acc + item.quantity, 0)
+      itemCount
     }}>
       {children}
     </CartContext.Provider>

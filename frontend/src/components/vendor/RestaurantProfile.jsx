@@ -4,12 +4,27 @@ import { fetchApi } from '../../api/client';
 import { formatDirectImageUrl } from '../../utils/imageUrl';
 
 export default function RestaurantProfile({ profile, onRefresh }) {
+  const [name, setName] = useState(profile?.name || '');
+  const [cuisine, setCuisine] = useState(profile?.cuisine || '');
   const [isOpen, setIsOpen] = useState(profile?.isOpen ?? true);
   const [openingHours, setOpeningHours] = useState(profile?.openingHours || '11:00 AM - 11:00 PM');
   const [address, setAddress] = useState(profile?.address || '');
   const [phone, setPhone] = useState(profile?.phone || '');
   const [imageUrl, setImageUrl] = useState(profile?.imageUrl || profile?.image_url || '');
   const [saving, setSaving] = useState(false);
+
+  // Sync state if profile prop updates
+  React.useEffect(() => {
+    if (profile) {
+      setName(profile.name || '');
+      setCuisine(profile.cuisine || '');
+      setIsOpen(profile.isOpen ?? true);
+      setOpeningHours(profile.openingHours || '11:00 AM - 11:00 PM');
+      setAddress(profile.address || '');
+      setPhone(profile.phone || '');
+      setImageUrl(profile.imageUrl || profile.image_url || '');
+    }
+  }, [profile]);
 
   if (!profile) return null;
 
@@ -32,12 +47,18 @@ export default function RestaurantProfile({ profile, onRefresh }) {
 
   const handleSaveDetails = async (e) => {
     e.preventDefault();
+    if (!name.trim()) {
+      alert('Restaurant name cannot be empty.');
+      return;
+    }
     try {
       setSaving(true);
       const formattedImg = formatDirectImageUrl(imageUrl);
       await fetchApi('/vendor/profile', {
         method: 'PUT',
         body: JSON.stringify({ 
+          name: name.trim(),
+          cuisine: cuisine.trim(),
           openingHours, 
           address, 
           phone, 
@@ -45,7 +66,7 @@ export default function RestaurantProfile({ profile, onRefresh }) {
         })
       });
       setImageUrl(formattedImg);
-      alert('Restaurant operating profile saved!');
+      alert('Restaurant name and operating profile saved successfully!');
       onRefresh();
     } catch (err) {
       alert('Error saving profile: ' + err.message);
@@ -69,8 +90,8 @@ export default function RestaurantProfile({ profile, onRefresh }) {
             }}
           />
           <div>
-            <h2 className="text-xl font-black text-gray-900">{profile.name}</h2>
-            <p className="text-xs font-semibold text-gray-500">{profile.cuisine} • Rating: ⭐ {profile.rating}</p>
+            <h2 className="text-xl font-black text-gray-900">{name || profile.name}</h2>
+            <p className="text-xs font-semibold text-gray-500">{cuisine || profile.cuisine || 'Restaurant Partner'} • Rating: ⭐ {profile.rating}</p>
           </div>
         </div>
 
@@ -92,6 +113,40 @@ export default function RestaurantProfile({ profile, onRefresh }) {
       {/* Edit Details Form */}
       <form onSubmit={handleSaveDetails} className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         
+        {/* Restaurant Name (Editable) */}
+        <div className="md:col-span-2">
+          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Store className="w-3.5 h-3.5 text-rose-600" /> Restaurant Brand Name (Public Storefront Display)
+            </span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              Editable Anytime
+            </span>
+          </label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Aunty's Kitchen, Telugu Ruchulu, Campus Cafe..."
+            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-extrabold text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all"
+          />
+        </div>
+
+        {/* Cuisine Specialties */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <Store className="w-3.5 h-3.5 text-rose-600" /> Cuisine / Food Types
+          </label>
+          <input
+            type="text"
+            value={cuisine}
+            onChange={(e) => setCuisine(e.target.value)}
+            placeholder="e.g. Biryani, Tiffins, Chinese"
+            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all"
+          />
+        </div>
+
         {/* Restaurant Image URL with Google Drive Support */}
         <div className="md:col-span-3 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 space-y-2">
           <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center justify-between">

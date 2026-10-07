@@ -5,7 +5,7 @@ import { fetchApi } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLogin }) {
-  const { cartItems, restaurant, updateQuantity, removeFromCart, clearCart, subtotal, deliveryFee, tax, total } = useCart();
+  const { cartItems, restaurant, updateQuantity, removeFromCart, clearCart, subtotal, applicationCharges, deliveryFee, tax, total, itemCount } = useCart();
   const { user } = useAuth();
 
   const isVendor = user?.role === 'VENDOR';
@@ -157,7 +157,15 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
         method: 'POST',
         body: JSON.stringify({
           restaurantId: restaurant.id,
-          items: cartItems.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
+          items: cartItems.map((i) => ({ 
+            menuItemId: i.menuItemId, 
+            quantity: i.quantity,
+            price: i.price,
+            name: i.name 
+          })),
+          subtotal,
+          applicationCharges,
+          deliveryFee,
           deliveryAddress,
           customerPhone,
           notes
@@ -346,21 +354,29 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
         {/* Drawer Footer — always pinned at bottom */}
         {cartItems.length > 0 && (
           <div className="flex-shrink-0 p-5 bg-gray-50 border-t border-gray-100 space-y-3">
-            <div className="space-y-1.5 text-xs font-semibold text-gray-600">
+            <div className="space-y-2 text-xs font-semibold text-gray-600">
               <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>₹{subtotal.toFixed(2)}</span>
+                <span>Restaurant Food Subtotal</span>
+                <span className="font-bold text-gray-800">₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-amber-900 bg-amber-50 px-2.5 py-1.5 rounded-xl border border-amber-200/80 font-bold">
+                <span className="flex items-center gap-1.5">
+                  <span>⚡ Application Charges ({itemCount} {itemCount === 1 ? 'item' : 'items'} × ₹5)</span>
+                </span>
+                <span>₹{applicationCharges.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Delivery Fee</span>
                 <span>₹{deliveryFee.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Estimated Tax (GST 5%)</span>
-                <span>₹{tax.toFixed(2)}</span>
-              </div>
+              {tax > 0 && (
+                <div className="flex justify-between">
+                  <span>Estimated Tax</span>
+                  <span>₹{tax.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm font-black text-gray-900 pt-2 border-t border-gray-200">
-                <span>Total Amount</span>
+                <span>Total Amount to Pay</span>
                 <span className="text-rose-600">₹{total.toFixed(2)}</span>
               </div>
             </div>

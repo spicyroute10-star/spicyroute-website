@@ -48,9 +48,9 @@ export const generateCSVReport = async (res, orders, filterInfo = {}) => {
       { key: 'deliveryFee', header: 'Delivery Fee (INR)' },
       { key: 'tax', header: 'Tax (INR)' },
       { key: 'total', header: 'Total (INR)' },
-      { key: 'commissionRate', header: 'Commission Rate (%)' },
-      { key: 'commissionAmount', header: 'Commission (INR)' },
-      { key: 'vendorEarnings', header: 'Vendor Earnings (INR)' }
+      { key: 'commissionRate', header: 'Application Fee Policy' },
+      { key: 'commissionAmount', header: 'Application Charges (INR)' },
+      { key: 'vendorEarnings', header: 'Vendor Food Payout (INR)' }
     ]
   });
 
@@ -70,7 +70,7 @@ export const generateCSVReport = async (res, orders, filterInfo = {}) => {
       deliveryFee: `₹${order.delivery_fee.toFixed(2)}`,
       tax: `₹${order.tax.toFixed(2)}`,
       total: `₹${order.total.toFixed(2)}`,
-      commissionRate: `${order.commission_rate}%`,
+      commissionRate: '₹5/item',
       commissionAmount: `₹${order.commission_amount.toFixed(2)}`,
       vendorEarnings: `₹${order.vendor_earnings.toFixed(2)}`
     });
@@ -117,8 +117,8 @@ export const generatePDFReport = async (res, orders, filterInfo = {}) => {
   doc.text(`Total Orders Logged: ${totalOrders}`, 55, startY + 28);
   doc.text(`Completed/Active Revenue (GMV): Rs. ${totalRevenue.toFixed(2)}`, 55, startY + 44);
 
-  doc.text(`Platform Commission Earned: Rs. ${totalCommission.toFixed(2)}`, 300, startY + 28);
-  doc.text(`Vendor Earnings Payouts: Rs. ${totalVendorPayouts.toFixed(2)}`, 300, startY + 44);
+  doc.text(`Platform Application Charges: Rs. ${totalCommission.toFixed(2)}`, 300, startY + 28);
+  doc.text(`Vendor Food Payouts: Rs. ${totalVendorPayouts.toFixed(2)}`, 300, startY + 44);
 
   let tableTop = startY + 80;
   doc.rect(40, tableTop, 515, 20).fill('#374151');
@@ -129,8 +129,8 @@ export const generatePDFReport = async (res, orders, filterInfo = {}) => {
   doc.text('Restaurant', 165, tableTop + 6);
   doc.text('Status', 285, tableTop + 6);
   doc.text('Total (INR)', 355, tableTop + 6);
-  doc.text('Commission', 415, tableTop + 6);
-  doc.text('Vendor Net', 480, tableTop + 6);
+  doc.text('App Fee', 415, tableTop + 6);
+  doc.text('Vendor Payout', 480, tableTop + 6);
 
   let currentY = tableTop + 22;
 
