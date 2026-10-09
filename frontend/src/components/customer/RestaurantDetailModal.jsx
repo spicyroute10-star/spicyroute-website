@@ -59,15 +59,15 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm overflow-hidden">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full h-[92vh] sm:h-auto sm:max-h-[90vh] lg:h-[88vh] lg:max-h-[88vh] lg:max-w-5xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col my-0 sm:my-auto animate-in slide-in-from-bottom duration-300">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm overflow-hidden lg:p-0">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full h-[92vh] sm:h-auto sm:max-h-[90vh] shadow-2xl border border-gray-100 overflow-hidden flex flex-col my-0 sm:my-auto animate-in slide-in-from-bottom duration-300 lg:w-full lg:max-w-none lg:h-full lg:max-h-full lg:rounded-none lg:border-0 lg:shadow-none lg:my-0">
         
         {loading || !restaurant ? (
           <div className="p-12 text-center text-gray-500 font-bold">Loading restaurant menu...</div>
         ) : (
           <>
             {/* Header Image & Info */}
-            <div className="relative h-40 sm:h-48 md:h-56 flex-shrink-0 lg:h-56">
+            <div className="relative h-40 sm:h-48 md:h-56 flex-shrink-0 lg:h-64 xl:h-72">
               <img
                 src={restaurant.imageUrl || restaurant.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80'}
                 alt={restaurant.name}
@@ -90,12 +90,13 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
 
               <button
                 onClick={onClose}
-                className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition-colors z-20"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition-colors z-20 lg:top-6 lg:right-8 lg:px-4 lg:py-2 lg:rounded-2xl lg:flex lg:items-center lg:gap-2 lg:text-xs lg:font-bold shadow-lg"
               >
                 <X className="w-5 h-5" />
+                <span className="hidden lg:inline">Back to Restaurants</span>
               </button>
 
-              <div className="absolute bottom-3 left-4 right-4 sm:bottom-4 sm:left-6 sm:right-6 text-white z-20">
+              <div className="absolute bottom-3 left-4 right-4 sm:bottom-4 sm:left-6 sm:right-6 text-white z-20 lg:bottom-6 lg:left-10 lg:right-10 xl:left-16 xl:right-16">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-white text-[10px] sm:text-[11px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                     isRestaurantClosed ? 'bg-red-600' : 'bg-emerald-600'
@@ -109,21 +110,21 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                     🛵 {restaurant.deliveryFee === 0 ? 'FREE Delivery' : `₹${restaurant.deliveryFee ?? 40} Delivery`}
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-3xl font-black truncate">{restaurant.name}</h2>
-                <p className="text-[11px] sm:text-xs text-gray-300 font-medium flex items-center gap-2.5 mt-0.5 truncate">
-                  <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3 flex-shrink-0" /> {restaurant.address}</span>
-                  <span className="flex items-center gap-1 flex-shrink-0"><Clock className="w-3 h-3" /> {restaurant.openingHours || restaurant.opening_hours || '10:00 AM - 10:00 PM'}</span>
+                <h2 className="text-xl sm:text-3xl font-black truncate lg:text-4xl">{restaurant.name}</h2>
+                <p className="text-[11px] sm:text-xs text-gray-300 font-medium flex items-center gap-2.5 mt-0.5 truncate lg:text-sm">
+                  <span className="flex items-center gap-1 truncate"><MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {restaurant.address}</span>
+                  <span className="flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> {restaurant.openingHours || restaurant.opening_hours || '10:00 AM - 10:00 PM'}</span>
                 </p>
               </div>
             </div>
 
             {/* Category Tabs */}
-            <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-2.5 flex gap-2 overflow-x-auto flex-shrink-0 no-scrollbar">
+            <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-2.5 flex gap-2 overflow-x-auto flex-shrink-0 no-scrollbar lg:px-10 xl:px-16 lg:py-3.5 lg:gap-3 sticky top-0 z-10 bg-white/95 backdrop-blur-md">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs font-extrabold transition-all whitespace-nowrap ${
+                  className={`px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs font-extrabold transition-all whitespace-nowrap lg:px-5 lg:py-2 lg:text-xs ${
                     selectedCategory === cat
                       ? 'bg-rose-600 text-white shadow-sm'
                       : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -135,11 +136,11 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
             </div>
 
             {/* Menu Items List */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:p-6 lg:auto-rows-fr">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 lg:p-10 xl:p-16 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-6">
               {filteredItems.length === 0 ? (
-                <div className="col-span-full py-12 text-center text-gray-400">
-                  <Utensils className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-xs font-bold">No menu items in this category yet.</p>
+                <div className="col-span-full py-16 text-center text-gray-400">
+                  <Utensils className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-bold">No menu items in this category yet.</p>
                 </div>
               ) : (
                 filteredItems.map((item) => {
@@ -149,7 +150,7 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                   return (
                     <div
                       key={item.id}
-                      className={`relative rounded-3xl p-4 sm:p-5 pb-5 sm:pb-6 flex items-start justify-between gap-3 sm:gap-4 border transition-all overflow-hidden bg-white shadow-xs lg:rounded-2xl lg:p-4 lg:min-h-[148px] lg:h-auto lg:items-stretch lg:gap-4 ${
+                      className={`relative rounded-3xl p-4 sm:p-5 pb-5 sm:pb-6 flex items-start justify-between gap-3 sm:gap-4 border transition-all overflow-hidden bg-white shadow-xs lg:rounded-2xl lg:p-5 lg:min-h-[190px] lg:h-auto lg:flex lg:flex-row lg:items-stretch lg:justify-between lg:gap-5 lg:border-gray-200/90 hover:lg:border-rose-300 hover:lg:shadow-lg ${
                         isItemUnavailable
                           ? 'border-red-300'
                           : 'border-gray-200/90 hover:shadow-md hover:border-rose-300'
@@ -174,29 +175,31 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                       )}
 
                       {/* Left Item Details */}
-                      <div className="flex-1 min-w-0 pr-1 flex flex-col justify-between self-stretch lg:pr-2 lg:justify-between lg:self-stretch">
+                      <div className="flex-1 min-w-0 pr-1 flex flex-col justify-between self-stretch lg:pr-3 lg:justify-between lg:self-stretch lg:py-0.5">
                         <div>
-                          <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 leading-tight lg:text-sm lg:font-bold lg:line-clamp-2">{item.name}</h4>
-                          <p className="text-[11px] sm:text-xs font-medium text-gray-500 line-clamp-2 mt-1 lg:text-xs lg:line-clamp-2 lg:mt-1">
+                          <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 leading-tight lg:text-base lg:font-black lg:line-clamp-2">
+                            {item.name}
+                          </h4>
+                          <p className="text-[11px] sm:text-xs font-medium text-gray-500 line-clamp-2 mt-1 lg:text-xs lg:line-clamp-3 lg:mt-1.5">
                             {item.description}
                           </p>
                         </div>
-                        <div className="text-xs sm:text-sm font-black text-rose-600 mt-3 lg:mt-3 lg:text-sm">
+                        <div className="text-xs sm:text-sm font-black text-rose-600 mt-3 lg:mt-4 lg:text-base">
                           ₹{Number(item.price).toFixed(2)}
                         </div>
                       </div>
 
                       {/* Right Food Image + Add Button Container */}
-                      <div className="flex flex-col items-center justify-start gap-2 flex-shrink-0 min-w-[80px] sm:min-w-[96px] lg:w-24 lg:min-w-[96px] lg:justify-between">
+                      <div className="flex flex-col items-center justify-between gap-2 flex-shrink-0 min-w-[80px] sm:min-w-[96px] lg:w-32 lg:min-w-[128px]">
                         <img
                           src={item.imageUrl || item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
                           alt={item.name}
-                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-gray-200 shadow-xs lg:w-24 lg:h-20 lg:rounded-xl"
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-gray-200 shadow-xs lg:w-32 lg:h-24 lg:rounded-xl"
                         />
                         <button
                           onClick={() => handleAddItem(item)}
                           disabled={isItemUnavailable}
-                          className={`w-full py-1.5 px-3 rounded-xl text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all shadow-sm lg:py-1.5 lg:text-xs ${
+                          className={`w-full py-1.5 px-3 rounded-xl text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all shadow-sm lg:py-2 lg:px-4 lg:text-xs lg:rounded-xl ${
                             isItemUnavailable
                               ? 'bg-red-50 border border-red-300 text-red-600 cursor-not-allowed opacity-90'
                               : isJustAdded
