@@ -60,14 +60,14 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm overflow-hidden">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full h-[92vh] sm:h-auto sm:max-h-[90vh] shadow-2xl border border-gray-100 overflow-hidden flex flex-col my-0 sm:my-auto animate-in slide-in-from-bottom duration-300">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full h-[92vh] sm:h-auto sm:max-h-[90vh] lg:h-[88vh] lg:max-h-[88vh] lg:max-w-5xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col my-0 sm:my-auto animate-in slide-in-from-bottom duration-300">
         
         {loading || !restaurant ? (
           <div className="p-12 text-center text-gray-500 font-bold">Loading restaurant menu...</div>
         ) : (
           <>
             {/* Header Image & Info */}
-            <div className="relative h-40 sm:h-48 md:h-56 flex-shrink-0">
+            <div className="relative h-40 sm:h-48 md:h-56 flex-shrink-0 lg:h-56">
               <img
                 src={restaurant.imageUrl || restaurant.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80'}
                 alt={restaurant.name}
@@ -135,7 +135,7 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
             </div>
 
             {/* Menu Items List */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:p-6 lg:auto-rows-fr">
               {filteredItems.length === 0 ? (
                 <div className="col-span-full py-12 text-center text-gray-400">
                   <Utensils className="w-10 h-10 text-gray-300 mx-auto mb-2" />
@@ -149,7 +149,7 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                   return (
                     <div
                       key={item.id}
-                      className={`relative rounded-3xl p-4 sm:p-5 pb-5 sm:pb-6 flex items-start justify-between gap-3 sm:gap-4 border transition-all overflow-hidden bg-white shadow-xs ${
+                      className={`relative rounded-3xl p-4 sm:p-5 pb-5 sm:pb-6 flex items-start justify-between gap-3 sm:gap-4 border transition-all overflow-hidden bg-white shadow-xs lg:rounded-2xl lg:p-4 lg:min-h-[148px] lg:h-auto lg:items-stretch lg:gap-4 ${
                         isItemUnavailable
                           ? 'border-red-300'
                           : 'border-gray-200/90 hover:shadow-md hover:border-rose-300'
@@ -157,7 +157,7 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                     >
                       {/* Out of Stock Overlay */}
                       {isItemUnavailable && (
-                        <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 flex items-center justify-between px-4 border-2 border-red-500/40 rounded-3xl pointer-events-none">
+                        <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 flex items-center justify-between px-4 border-2 border-red-500/40 rounded-3xl lg:rounded-2xl pointer-events-none">
                           <div className="flex items-center gap-2 text-white">
                             <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 flex-shrink-0 drop-shadow-md" />
                             <div>
@@ -174,29 +174,29 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                       )}
 
                       {/* Left Item Details */}
-                      <div className="flex-1 min-w-0 pr-1 flex flex-col justify-between self-stretch">
+                      <div className="flex-1 min-w-0 pr-1 flex flex-col justify-between self-stretch lg:pr-2 lg:justify-between lg:self-stretch">
                         <div>
-                          <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 leading-tight">{item.name}</h4>
-                          <p className="text-[11px] sm:text-xs font-medium text-gray-500 line-clamp-2 mt-1">
+                          <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 leading-tight lg:text-sm lg:font-bold lg:line-clamp-2">{item.name}</h4>
+                          <p className="text-[11px] sm:text-xs font-medium text-gray-500 line-clamp-2 mt-1 lg:text-xs lg:line-clamp-2 lg:mt-1">
                             {item.description}
                           </p>
                         </div>
-                        <div className="text-xs sm:text-sm font-black text-rose-600 mt-3">
+                        <div className="text-xs sm:text-sm font-black text-rose-600 mt-3 lg:mt-3 lg:text-sm">
                           ₹{Number(item.price).toFixed(2)}
                         </div>
                       </div>
 
                       {/* Right Food Image + Add Button Container */}
-                      <div className="flex flex-col items-center justify-start gap-2 flex-shrink-0 min-w-[80px] sm:min-w-[96px]">
+                      <div className="flex flex-col items-center justify-start gap-2 flex-shrink-0 min-w-[80px] sm:min-w-[96px] lg:w-24 lg:min-w-[96px] lg:justify-between">
                         <img
                           src={item.imageUrl || item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
                           alt={item.name}
-                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-gray-200 shadow-xs"
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-gray-200 shadow-xs lg:w-24 lg:h-20 lg:rounded-xl"
                         />
                         <button
                           onClick={() => handleAddItem(item)}
                           disabled={isItemUnavailable}
-                          className={`w-full py-1.5 px-3 rounded-xl text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all shadow-sm ${
+                          className={`w-full py-1.5 px-3 rounded-xl text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all shadow-sm lg:py-1.5 lg:text-xs ${
                             isItemUnavailable
                               ? 'bg-red-50 border border-red-300 text-red-600 cursor-not-allowed opacity-90'
                               : isJustAdded
