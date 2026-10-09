@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { fetchApi } from '../api/client';
 
 const CartContext = createContext();
 
@@ -23,11 +24,24 @@ export const CartProvider = ({ children }) => {
       return null;
     }
   });
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    try {
+      const saved = localStorage.getItem('applied_coupon');
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
     localStorage.setItem('cart_restaurant', JSON.stringify(restaurant));
-  }, [cartItems, restaurant]);
+    if (appliedCoupon) {
+      localStorage.setItem('applied_coupon', JSON.stringify(appliedCoupon));
+    } else {
+      localStorage.removeItem('applied_coupon');
+    }
+  }, [cartItems, restaurant, appliedCoupon]);
 
   const addToCart = (item, restInfo) => {
     // If adding item from a different restaurant, confirm reset
@@ -73,10 +87,36 @@ export const CartProvider = ({ children }) => {
   const clearCart = () => {
     setCartItems([]);
     setRestaurant(null);
+    setAppliedCoupon(null);
+  };
+
+  const applyCoupon = async (code) => {
+    if (!code || !code.trim()) {
+      throw new Error('Please enter a coupon code.');
+    }
+    const res = await fetchApi('/coupons/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code: code.trim(), subtotal })
+    });
+    if (res.success && res.coupon) {
+      setAppliedCoupon(res.coupon);
+      return res;
+    }
+    throw new Error(res.message || 'Failed to apply coupon');
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
   };
 
   const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  // 10% Discount or configured coupon percent applied to Food Subtotal
+  const couponDiscount = appliedCoupon && subtotal > 0
+    ? Math.round((subtotal * (appliedCoupon.discountPercent / 100)) * 100) / 100
+    : 0;
+
   // Platform Application Charges: Fixed ₹5 per item ordered
   const applicationCharges = itemCount * 5.0;
   // Delivery Charges: Configured per restaurant (or 40.00 default)
@@ -86,7 +126,7 @@ export const CartProvider = ({ children }) => {
         : (restaurant?.delivery_fee !== undefined ? Number(restaurant.delivery_fee) : 40.00))
     : 0;
   const tax = 0;
-  const total = Math.round((subtotal + applicationCharges + deliveryFee) * 100) / 100;
+  const total = Math.round(Math.max(0, (subtotal - couponDiscount) + applicationCharges + deliveryFee) * 100) / 100;
 
   return (
     <CartContext.Provider value={{
@@ -97,6 +137,10 @@ export const CartProvider = ({ children }) => {
       removeFromCart,
       clearCart,
       subtotal,
+      appliedCoupon,
+      couponDiscount,
+      applyCoupon,
+      removeCoupon,
       applicationCharges,
       deliveryFee,
       tax,

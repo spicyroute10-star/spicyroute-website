@@ -6,6 +6,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import vendorRoutes from './routes/vendorRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import restaurantRoutes from './routes/restaurantRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

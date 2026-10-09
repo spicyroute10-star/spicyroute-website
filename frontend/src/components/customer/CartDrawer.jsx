@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, MapPin, Phone, FileText, Navigation, CheckCircle2, ShieldAlert, LogIn } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, MapPin, Phone, FileText, Navigation, CheckCircle2, ShieldAlert, LogIn, Tag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { fetchApi } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLogin }) {
-  const { cartItems, restaurant, updateQuantity, removeFromCart, clearCart, subtotal, applicationCharges, deliveryFee, tax, total, itemCount } = useCart();
+  const { 
+    cartItems, 
+    restaurant, 
+    updateQuantity, 
+    removeFromCart, 
+    clearCart, 
+    subtotal, 
+    appliedCoupon, 
+    couponDiscount, 
+    applyCoupon, 
+    removeCoupon, 
+    applicationCharges, 
+    deliveryFee, 
+    tax, 
+    total, 
+    itemCount 
+  } = useCart();
   const { user } = useAuth();
 
   const isVendor = user?.role === 'VENDOR';
@@ -20,6 +36,9 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [gpsSuccess, setGpsSuccess] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
 
   // Sync address whenever drawer opens or user changes
   useEffect(() => {
@@ -136,6 +155,20 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
     );
   };
 
+  const handleApplyCoupon = async (e) => {
+    if (e) e.preventDefault();
+    setCouponError('');
+    try {
+      setApplyingCoupon(true);
+      await applyCoupon(couponInput);
+      setCouponInput('');
+    } catch (err) {
+      setCouponError(err.message);
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
@@ -164,6 +197,8 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
             name: i.name 
           })),
           subtotal,
+          couponCode: appliedCoupon?.code || undefined,
+          couponDiscount,
           applicationCharges,
           deliveryFee,
           deliveryAddress,
@@ -354,11 +389,77 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
         {/* Drawer Footer — always pinned at bottom */}
         {cartItems.length > 0 && (
           <div className="flex-shrink-0 p-5 bg-gray-50 border-t border-gray-100 space-y-3">
+            {/* Promo Code / Coupon Section */}
+            <div className="bg-white p-3 rounded-2xl border border-gray-200 space-y-2 shadow-xs">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-black text-gray-900">
+                  <Tag className="w-3.5 h-3.5 text-rose-600" /> Apply Coupon
+                </span>
+                {!appliedCoupon && (
+                  <button
+                    type="button"
+                    onClick={() => { setCouponInput('SPICY10'); }}
+                    className="text-[10px] font-extrabold text-rose-600 hover:text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 transition-colors"
+                  >
+                    Tap "SPICY10" (10% OFF)
+                  </button>
+                )}
+              </div>
+
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🎉</span>
+                    <div>
+                      <p className="font-extrabold text-emerald-950">{appliedCoupon.code} Applied!</p>
+                      <p className="text-[10px] text-emerald-700 font-bold">{appliedCoupon.discountPercent}% OFF saved ₹{couponDiscount.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-xs font-black text-rose-600 hover:text-rose-800 bg-white px-2 py-1 rounded-lg border border-emerald-200 shadow-2xs"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter promo code (e.g. SPICY10)"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={applyingCoupon || !couponInput.trim()}
+                    className="bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white text-xs font-black px-3.5 py-1.5 rounded-xl shadow-xs transition-all"
+                  >
+                    {applyingCoupon ? 'Checking...' : 'Apply'}
+                  </button>
+                </form>
+              )}
+
+              {couponError && (
+                <p className="text-[11px] text-rose-600 font-bold">{couponError}</p>
+              )}
+            </div>
+
             <div className="space-y-2 text-xs font-semibold text-gray-600">
               <div className="flex justify-between">
                 <span>Restaurant Food Subtotal</span>
                 <span className="font-bold text-gray-800">₹{subtotal.toFixed(2)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <span>🎉 Coupon Discount ({appliedCoupon?.discountPercent || 10}% OFF)</span>
+                  </span>
+                  <span>-₹{couponDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-amber-900 bg-amber-50 px-2.5 py-1.5 rounded-xl border border-amber-200/80 font-bold">
                 <span className="flex items-center gap-1.5">
                   <span>⚡ Application Charges ({itemCount} {itemCount === 1 ? 'item' : 'items'} × ₹5)</span>

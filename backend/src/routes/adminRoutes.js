@@ -8,6 +8,12 @@ import {
   onboardVendor,
   deleteRestaurant
 } from '../controllers/adminController.js';
+import {
+  getAdminCoupons,
+  createAdminCoupon,
+  toggleAdminCoupon,
+  deleteAdminCoupon
+} from '../controllers/couponController.js';
 import { authenticate } from '../middleware/auth.js';
 import { authorizeRoles } from '../middleware/rbac.js';
 
@@ -23,5 +29,11 @@ router.put('/restaurants/:id/status', updateRestaurantControl);
 router.delete('/restaurants/:id', deleteRestaurant);
 router.put('/settings/commission', updateGlobalCommissionRate);
 router.post('/restaurants/onboard', onboardVendor);
+
+// Coupon Management Routes
+router.get('/coupons', getAdminCoupons);
+router.post('/coupons', createAdminCoupon);
+router.put('/coupons/:id/status', toggleAdminCoupon);
+router.delete('/coupons/:id', deleteAdminCoupon);
 
 export default router;

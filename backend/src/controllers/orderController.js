@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase.js';
 import { notifyOrderCreated } from '../sockets/socketHandler.js';
+import { validateCoupon } from '../services/couponService.js';
 
 /**
  * POST /api/orders
@@ -12,7 +13,7 @@ export const createOrder = async (req, res) => {
       return res.status(403).json({ error: 'Vendor accounts cannot place food orders. Please sign in as a Customer to order.' });
     }
 
-    const { restaurantId, items, deliveryAddress, customerPhone, notes } = req.body;
+    const { restaurantId, items, deliveryAddress, customerPhone, notes, couponCode } = req.body;
 
     if (!restaurantId || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Restaurant ID and at least one item are required' });
@@ -77,13 +78,34 @@ export const createOrder = async (req, res) => {
     const defaultRestFee = restaurant?.commission_rate !== undefined && restaurant?.commission_rate !== null ? parseFloat(restaurant.commission_rate) : 40.0;
     const deliveryFee = req.body.deliveryFee !== undefined ? parseFloat(req.body.deliveryFee) : defaultRestFee;
     const tax = 0.0;
-    const total = Math.round((subtotal + applicationCharges + deliveryFee + tax) * 100) / 100;
+
+    // Validate Coupon Discount
+    let discount = 0;
+    let appliedCoupon = null;
+    if (couponCode) {
+      try {
+        const couponCheck = await validateCoupon(couponCode, subtotal);
+        if (couponCheck.valid) {
+          discount = couponCheck.discountAmount;
+          appliedCoupon = couponCheck.coupon;
+        }
+      } catch (cErr) {
+        console.warn('Coupon validation error during order creation:', cErr);
+      }
+    }
+
+    const total = Math.round(Math.max(0, (subtotal - discount) + applicationCharges + deliveryFee + tax) * 100) / 100;
 
     const commissionRate = 0.0; // 0% percentage commission
     const commissionAmount = Math.round(applicationCharges * 100) / 100; // Platform earns ₹5 per item
     const vendorEarnings = Math.round(subtotal * 100) / 100; // Vendor gets full food menu subtotal
 
     const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const finalNotes = [
+      notes || '',
+      appliedCoupon ? `[Promo Applied: ${appliedCoupon.code} (-₹${discount})]` : ''
+    ].filter(Boolean).join(' ');
 
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
@@ -101,7 +123,7 @@ export const createOrder = async (req, res) => {
         vendor_earnings: vendorEarnings,
         delivery_address: deliveryAddress || req.user.address || 'Standard Delivery Address',
         customer_phone: customerPhone || req.user.phone || '+1 (555) 000-0000',
-        notes: notes || ''
+        notes: finalNotes
       })
       .select()
       .single();

@@ -5,7 +5,8 @@ import MetricsGrid from '../components/admin/MetricsGrid';
 import RestaurantPerformanceTable from '../components/admin/RestaurantPerformanceTable';
 import ReportDownloaderModal from '../components/admin/ReportDownloaderModal';
 import VendorOnboardingModal from '../components/admin/VendorOnboardingModal';
-import { Download, UserPlus, RefreshCw, Settings, ShieldAlert, Sparkles, Loader2, CheckCircle, Store, Clock, BellRing, Trash2 } from 'lucide-react';
+import CouponManagementModal from '../components/admin/CouponManagementModal';
+import { Download, UserPlus, RefreshCw, Settings, ShieldAlert, Sparkles, Loader2, CheckCircle, Store, Clock, BellRing, Trash2, Tag } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState(null);
@@ -13,6 +14,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [globalCommissionRate, setGlobalCommissionRate] = useState('15');
   const [updatingCommission, setUpdatingCommission] = useState(false);
 
@@ -162,6 +164,14 @@ export default function AdminDashboardPage() {
             <UserPlus className="w-4 h-4 text-rose-400" /> Onboard Vendor
           </button>
 
+          {/* Manage Coupons Trigger */}
+          <button
+            onClick={() => setIsCouponModalOpen(true)}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all active:scale-95"
+          >
+            <Tag className="w-4 h-4" /> Manage Coupons (🎟️)
+          </button>
+
           {/* Report Generator Trigger */}
           <button
             onClick={() => setIsReportModalOpen(true)}
@@ -308,6 +318,11 @@ export default function AdminDashboardPage() {
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
         onSuccess={loadData}
+      />
+
+      <CouponManagementModal
+        isOpen={isCouponModalOpen}
+        onClose={() => setIsCouponModalOpen(false)}
       />
     </div>
   );
