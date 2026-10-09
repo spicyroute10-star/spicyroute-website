@@ -79,7 +79,12 @@ export const CartProvider = ({ children }) => {
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   // Platform Application Charges: Fixed ₹5 per item ordered
   const applicationCharges = itemCount * 5.0;
-  const deliveryFee = cartItems.length > 0 ? 40.00 : 0;
+  // Delivery Charges: Configured per restaurant (or 40.00 default)
+  const deliveryFee = cartItems.length > 0 
+    ? (restaurant?.deliveryFee !== undefined && restaurant?.deliveryFee !== null 
+        ? Number(restaurant.deliveryFee) 
+        : (restaurant?.delivery_fee !== undefined ? Number(restaurant.delivery_fee) : 40.00))
+    : 0;
   const tax = 0;
   const total = Math.round((subtotal + applicationCharges + deliveryFee) * 100) / 100;
 

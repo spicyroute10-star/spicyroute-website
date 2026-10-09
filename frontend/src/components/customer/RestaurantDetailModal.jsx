@@ -48,7 +48,8 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
     addToCart(item, {
       id: restaurant.id,
       name: restaurant.name,
-      imageUrl: restaurant.imageUrl || restaurant.image_url
+      imageUrl: restaurant.imageUrl || restaurant.image_url,
+      deliveryFee: restaurant.deliveryFee ?? restaurant.delivery_fee ?? 40
     });
 
     setAddedItemIds((prev) => [...prev, item.id]);
@@ -103,6 +104,9 @@ export default function RestaurantDetailModal({ restaurantId, onClose, onOpenCar
                   </span>
                   <span className="bg-white/20 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                     <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400" /> {restaurant.rating || '4.8'}
+                  </span>
+                  <span className="bg-white/20 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    🛵 {restaurant.deliveryFee === 0 ? 'FREE Delivery' : `₹${restaurant.deliveryFee ?? 40} Delivery`}
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-3xl font-black truncate">{restaurant.name}</h2>

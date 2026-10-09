@@ -82,12 +82,12 @@ export default function LoginPage({ onSuccess, onCancel }) {
         
         {/* Header Branding */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 text-white flex items-center justify-center mx-auto shadow-lg">
-            <Flame className="w-8 h-8 fill-amber-200 text-amber-200" />
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg mx-auto border border-rose-200/60 bg-rose-50">
+            <img src="/logo.png" alt="Spicy Route Logo" className="w-full h-full object-cover" />
           </div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Spice Route</h2>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Spicy Route</h2>
           <p className="text-xs font-semibold text-gray-400">
-            {mode === 'signin' ? 'Sign in to access your account' : 'Create an account to get started'}
+            {mode === 'signin' ? 'Sign in to access your campus food account' : 'Create an account to get started'}
           </p>
         </div>
 

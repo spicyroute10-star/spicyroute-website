@@ -6,6 +6,8 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [commissionRateInput, setCommissionRateInput] = useState('');
+  const [editingDeliveryId, setEditingDeliveryId] = useState(null);
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState('');
   const [updating, setUpdating] = useState(false);
 
   const safeDistribution = Array.isArray(distribution) ? distribution : [];
@@ -27,6 +29,27 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
       onRefresh();
     } catch (err) {
       alert('Error updating vendor status: ' + err.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSaveDeliveryFee = async (restaurantId) => {
+    try {
+      const fee = parseFloat(deliveryFeeInput);
+      if (isNaN(fee) || fee < 0) {
+        alert('Please enter a valid delivery fee (0 or greater)');
+        return;
+      }
+      setUpdating(true);
+      await fetchApi(`/admin/restaurants/${restaurantId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ deliveryFee: fee })
+      });
+      setEditingDeliveryId(null);
+      onRefresh();
+    } catch (err) {
+      alert('Error updating delivery fee: ' + err.message);
     } finally {
       setUpdating(false);
     }
@@ -107,6 +130,7 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
               <th className="py-3.5 px-4 text-center">Active Orders</th>
               <th className="py-3.5 px-4 text-right">Revenue (GMV)</th>
               <th className="py-3.5 px-4 text-center">Application Fee</th>
+              <th className="py-3.5 px-4 text-center">Delivery Fee</th>
               <th className="py-3.5 px-4 text-right">Platform Earned</th>
               <th className="py-3.5 px-6 text-center">Admin Action</th>
             </tr>
@@ -114,7 +138,7 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
           <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan="8" className="py-8 text-center text-gray-400">
+                <td colSpan="9" className="py-8 text-center text-gray-400">
                   No restaurants match search query.
                 </td>
               </tr>
@@ -166,6 +190,43 @@ export default function RestaurantPerformanceTable({ distribution, onRefresh }) 
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-extrabold">
                       ₹5 / item
                     </span>
+                  </td>
+
+                  {/* Delivery Fee */}
+                  <td className="py-4 px-4 text-center">
+                    {editingDeliveryId === r?.restaurantId ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={deliveryFeeInput}
+                          onChange={(e) => setDeliveryFeeInput(e.target.value)}
+                          className="w-16 px-1.5 py-1 border border-rose-300 rounded text-center text-xs font-bold focus:outline-none"
+                        />
+                        <button
+                          onClick={() => handleSaveDeliveryFee(r?.restaurantId)}
+                          disabled={updating}
+                          className="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold shadow-xs"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-1 font-bold text-gray-800">
+                        <span>{r?.deliveryFee === 0 ? <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-extrabold border border-emerald-200">FREE</span> : `₹${r?.deliveryFee ?? 40}`}</span>
+                        <button
+                          onClick={() => {
+                            setEditingDeliveryId(r?.restaurantId);
+                            setDeliveryFeeInput((r?.deliveryFee ?? 40).toString());
+                          }}
+                          className="text-gray-400 hover:text-rose-600 p-0.5"
+                          title="Edit Delivery Fee"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </td>
 
                   {/* Platform Earned */}

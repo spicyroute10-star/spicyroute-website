@@ -74,7 +74,8 @@ export const createOrder = async (req, res) => {
     // 4. Vendor receives 100% of the food subtotal (0% commission deduction).
     const totalItemCount = orderItemsData.reduce((acc, oi) => acc + oi.quantity, 0);
     const applicationCharges = totalItemCount * 5.0;
-    const deliveryFee = req.body.deliveryFee !== undefined ? parseFloat(req.body.deliveryFee) : 40.0;
+    const defaultRestFee = restaurant?.commission_rate !== undefined && restaurant?.commission_rate !== null ? parseFloat(restaurant.commission_rate) : 40.0;
+    const deliveryFee = req.body.deliveryFee !== undefined ? parseFloat(req.body.deliveryFee) : defaultRestFee;
     const tax = 0.0;
     const total = Math.round((subtotal + applicationCharges + deliveryFee + tax) * 100) / 100;
 

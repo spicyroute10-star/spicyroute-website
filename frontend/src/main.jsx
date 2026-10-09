@@ -41,7 +41,7 @@ class ErrorBoundary extends Component {
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌶️</div>
           <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>
-            Spice Route
+            Spicy Route
           </h2>
           <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '360px', margin: '0 0 16px 0' }}>
             We encountered a temporary loading issue. Click below to reload cleanly.

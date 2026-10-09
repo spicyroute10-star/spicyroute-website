@@ -26,15 +26,15 @@ export default function PwaInstallModal() {
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-2 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
-              <Flame className="w-6 h-6 fill-amber-200 text-amber-200" />
+            <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-md flex-shrink-0 border border-rose-200/60 bg-rose-50">
+              <img src="/logo.png" alt="Spicy Route Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-gray-900 leading-snug">
                 {selectedDevice === 'ios' ? '📱 Make ordering even faster!' : 'Add us to your Home Screen in seconds 🚀'}
               </h3>
               <p className="text-xs font-semibold text-gray-400">
-                Install Spice Route for quick 1-tap food ordering
+                Install Spicy Route for quick 1-tap campus food ordering
               </p>
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function PwaInstallModal() {
                 </div>
                 <div className="flex-1">
                   <div className="text-xs font-black text-emerald-950">
-                    The Spice Route app icon appears on your Home Screen!
+                    The Spicy Route app icon appears on your Home Screen!
                   </div>
                   <p className="text-[11px] text-emerald-800 font-semibold mt-0.5">
                     Tap it anytime to launch full-screen without browser bars.
@@ -223,7 +223,7 @@ export default function PwaInstallModal() {
                 </div>
                 <div className="flex-1">
                   <div className="text-xs font-black text-emerald-950">
-                    Find the Spice Route app on your Home Screen!
+                    Find the Spicy Route app on your Home Screen!
                   </div>
                   <p className="text-[11px] text-emerald-800 font-semibold mt-0.5">
                     Fast access with offline caching and instant ordering.
@@ -261,7 +261,7 @@ export default function PwaInstallModal() {
                     Click <span className="text-rose-600 font-black">"Install"</span> in the prompt.
                   </div>
                   <p className="text-[11px] text-gray-500 font-semibold mt-0.5">
-                    Spice Route opens in its own clean window and can be pinned to your taskbar.
+                    Spicy Route opens in its own clean window and can be pinned to your taskbar.
                   </p>
                 </div>
               </div>

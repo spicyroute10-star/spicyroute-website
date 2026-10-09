@@ -49,15 +49,15 @@ export default function Navbar({ onOpenCart, activeView, setActiveView }) {
             onClick={() => setActiveView(isVendor ? 'vendor' : 'storefront')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
-              <Flame className="w-6 h-6 fill-amber-200 text-amber-200" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform flex-shrink-0 border border-rose-200/50 bg-rose-50">
+              <img src="/logo.png" alt="Spicy Route Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <span className="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-rose-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
-                Spice Route
+                Spicy Route
               </span>
               <span className="hidden sm:block text-[9px] font-extrabold text-rose-500 tracking-widest uppercase">
-                {isVendor ? 'VENDOR MANAGEMENT PORTAL' : 'AUTHENTIC FOOD DELIVERY'}
+                {isVendor ? 'VENDOR MANAGEMENT PORTAL' : 'CAMPUS FOOD DELIVERY'}
               </span>
             </div>
           </div>

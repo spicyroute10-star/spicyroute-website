@@ -111,6 +111,7 @@ export const getOrdersByRestaurantAggregates = async (startDate, endDate) => {
       isOpen: rest.is_open,
       isApproved: rest.is_approved,
       commissionRate: rest.commission_rate,
+      deliveryFee: rest.commission_rate !== undefined && rest.commission_rate !== null ? rest.commission_rate : 40.0,
       phone: rest.phone || rest.owner?.phone || '',
       address: rest.address || '',
       createdAt: rest.created_at || '',

@@ -272,9 +272,15 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-800">
-          <span className="text-gray-400">Application Fee:</span>
-          <span className="text-rose-600 font-extrabold">₹5 / Item Ordered</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 shadow-xs">
+            <span className="text-gray-400">Application Fee:</span>
+            <span className="text-rose-600 font-extrabold">₹5 / Item</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 shadow-xs">
+            <span className="text-gray-400">Delivery Fee:</span>
+            <span className="text-emerald-700 font-extrabold">Configured per Restaurant</span>
+          </div>
         </div>
       </div>
 

@@ -365,9 +365,15 @@ export default function CartDrawer({ isOpen, onClose, onOrderPlaced, onRequireLo
                 </span>
                 <span>₹{applicationCharges.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span>Delivery Fee</span>
-                <span>₹{deliveryFee.toFixed(2)}</span>
+                <span>{deliveryFee === 0 ? (
+                  <span className="text-emerald-700 font-black text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
+                    FREE Delivery
+                  </span>
+                ) : (
+                  `₹${deliveryFee.toFixed(2)}`
+                )}</span>
               </div>
               {tax > 0 && (
                 <div className="flex justify-between">

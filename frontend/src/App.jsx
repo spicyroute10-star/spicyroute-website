@@ -213,7 +213,7 @@ function MainApp() {
 
       {/* Production Footer */}
       <footer className="bg-white border-t border-gray-200 py-6 text-center text-xs font-semibold text-gray-400 mt-12 pb-24">
-        Spice Route Platform © 2026 • Real-Time Multi-Vendor Food Ordering Platform
+        Spicy Route Platform © 2026 • Real-Time Campus Food Delivery Platform
       </footer>
 
       {/* PWA Add to Home Screen Banner & Device Instruction Modal */}

@@ -65,12 +65,14 @@ export const exportReport = async (req, res) => {
 export const updateRestaurantControl = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isApproved, isOpen, commissionRate } = req.body;
+    const { isApproved, isOpen, commissionRate, deliveryFee } = req.body;
 
     const dataToUpdate = {};
     if (typeof isApproved === 'boolean') dataToUpdate.is_approved = isApproved;
     if (typeof isOpen === 'boolean') dataToUpdate.is_open = isOpen;
-    if (commissionRate !== undefined && !isNaN(parseFloat(commissionRate))) {
+    if (deliveryFee !== undefined && !isNaN(parseFloat(deliveryFee))) {
+      dataToUpdate.commission_rate = Math.max(0, parseFloat(deliveryFee));
+    } else if (commissionRate !== undefined && !isNaN(parseFloat(commissionRate))) {
       dataToUpdate.commission_rate = parseFloat(commissionRate);
     }
 

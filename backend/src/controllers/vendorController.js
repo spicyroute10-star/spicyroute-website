@@ -97,6 +97,8 @@ export const getVendorProfile = async (req, res) => {
       is_approved: restaurant.is_approved ?? true,
       commissionRate: restaurant.commission_rate ?? 15,
       commission_rate: restaurant.commission_rate ?? 15,
+      deliveryFee: restaurant.commission_rate !== undefined && restaurant.commission_rate !== null ? Number(restaurant.commission_rate) : 40.0,
+      delivery_fee: restaurant.commission_rate !== undefined && restaurant.commission_rate !== null ? Number(restaurant.commission_rate) : 40.0,
       imageUrl: restaurant.image_url,
       image_url: restaurant.image_url,
       openingHours: restaurant.opening_hours || '10:00 AM - 11:00 PM',
@@ -119,7 +121,7 @@ export const updateVendorProfile = async (req, res) => {
       return res.status(404).json({ error: 'Restaurant not found' });
     }
 
-    const { name, description, cuisine, address, phone, isOpen, openingHours, imageUrl } = req.body;
+    const { name, description, cuisine, address, phone, isOpen, openingHours, imageUrl, deliveryFee } = req.body;
 
     const updateData = {};
     if (name && name.trim()) updateData.name = name.trim();
@@ -130,6 +132,9 @@ export const updateVendorProfile = async (req, res) => {
     if (typeof isOpen === 'boolean') updateData.is_open = isOpen;
     if (openingHours) updateData.opening_hours = openingHours;
     if (imageUrl) updateData.image_url = formatDirectImageUrl(imageUrl);
+    if (deliveryFee !== undefined && deliveryFee !== null && !isNaN(parseFloat(deliveryFee))) {
+      updateData.commission_rate = Math.max(0, parseFloat(deliveryFee));
+    }
 
     const { data: updated, error: updateErr } = await supabase
       .from('restaurants')
@@ -156,6 +161,8 @@ export const updateVendorProfile = async (req, res) => {
       is_approved: updated.is_approved ?? true,
       commissionRate: updated.commission_rate ?? 15,
       commission_rate: updated.commission_rate ?? 15,
+      deliveryFee: updated.commission_rate !== undefined && updated.commission_rate !== null ? Number(updated.commission_rate) : 40.0,
+      delivery_fee: updated.commission_rate !== undefined && updated.commission_rate !== null ? Number(updated.commission_rate) : 40.0,
       imageUrl: updated.image_url,
       image_url: updated.image_url,
       openingHours: updated.opening_hours,

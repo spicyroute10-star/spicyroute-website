@@ -45,8 +45,8 @@ export default function PwaInstallBanner({ activeView }) {
 
         {/* Card Header & Content */}
         <div className="flex items-start gap-3 pr-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
-            <Flame className="w-6 h-6 fill-amber-200 text-amber-200" />
+          <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-md flex-shrink-0 border border-rose-200/60 bg-rose-50">
+            <img src="/logo.png" alt="Spicy Route Logo" className="w-full h-full object-cover" />
           </div>
 
           <div className="flex-1 min-w-0">

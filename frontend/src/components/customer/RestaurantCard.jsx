@@ -111,11 +111,20 @@ export default function RestaurantCard({ restaurant, onClick }) {
         }`}>
           <span className="flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
-            <span className="truncate max-w-[130px]">{restaurant.address}</span>
+            <span className="truncate max-w-[110px]">{restaurant.address}</span>
           </span>
-          <span className="font-extrabold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-lg text-[11px]">
-            ₹{priceForTwo} for two
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold ${
+              restaurant.deliveryFee === 0 
+                ? 'bg-emerald-100 text-emerald-800' 
+                : 'bg-rose-50 text-rose-700 border border-rose-100'
+            }`}>
+              {restaurant.deliveryFee === 0 ? 'FREE Delivery' : `₹${restaurant.deliveryFee ?? 40} Delivery`}
+            </span>
+            <span className="font-extrabold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-lg text-[11px]">
+              ₹{priceForTwo} for two
+            </span>
+          </div>
         </div>
       </div>
     </div>
