@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase.js';
 import { notifyOrderCreated } from '../sockets/socketHandler.js';
-import { validateCoupon } from '../services/couponService.js';
+import { validateCoupon, incrementCouponUsage } from '../services/couponService.js';
 
 /**
  * POST /api/orders
@@ -146,6 +146,13 @@ export const createOrder = async (req, res) => {
       .from('order_items')
       .insert(itemsToInsert)
       .select();
+
+    // Increment coupon usage counter if coupon was applied
+    if (appliedCoupon && appliedCoupon.code) {
+      incrementCouponUsage(appliedCoupon.code).catch((err) => {
+        console.error('Failed to increment coupon usage:', err);
+      });
+    }
 
     const formattedOrder = {
       id: newOrder.id,

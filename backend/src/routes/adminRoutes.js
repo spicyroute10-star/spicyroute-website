@@ -11,6 +11,7 @@ import {
 import {
   getAdminCoupons,
   createAdminCoupon,
+  updateAdminCoupon,
   toggleAdminCoupon,
   deleteAdminCoupon
 } from '../controllers/couponController.js';
@@ -33,6 +34,7 @@ router.post('/restaurants/onboard', onboardVendor);
 // Coupon Management Routes
 router.get('/coupons', getAdminCoupons);
 router.post('/coupons', createAdminCoupon);
+router.put('/coupons/:id', updateAdminCoupon);
 router.put('/coupons/:id/status', toggleAdminCoupon);
 router.delete('/coupons/:id', deleteAdminCoupon);
 

@@ -13,6 +13,7 @@ export default function CouponManagementModal({ isOpen, onClose }) {
   const [discountPercent, setDiscountPercent] = useState('10');
   const [description, setDescription] = useState('Flat 10% discount on food orders');
   const [minOrder, setMinOrder] = useState('0');
+  const [maxUses, setMaxUses] = useState('0');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -54,6 +55,9 @@ export default function CouponManagementModal({ isOpen, onClose }) {
       return;
     }
 
+    const parsedUses = parseInt(maxUses, 10);
+    const finalMaxUses = isNaN(parsedUses) || parsedUses < 0 ? 0 : parsedUses;
+
     try {
       setCreating(true);
       const res = await fetchApi('/admin/coupons', {
@@ -62,20 +66,44 @@ export default function CouponManagementModal({ isOpen, onClose }) {
           code: cleanCode,
           discountPercent: pct,
           description: description.trim(),
-          minOrder: parseFloat(minOrder) || 0
+          minOrder: parseFloat(minOrder) || 0,
+          maxUses: finalMaxUses
         })
       });
 
-      setSuccessMsg(`Coupon "${cleanCode}" (${pct}% OFF) created successfully!`);
+      setSuccessMsg(`Coupon "${cleanCode}" (${pct}% OFF, ${finalMaxUses > 0 ? `${finalMaxUses} uses` : 'Unlimited uses'}) created successfully!`);
       setCode('');
       setDiscountPercent('10');
       setDescription('Flat 10% discount on food orders');
       setMinOrder('0');
+      setMaxUses('0');
       loadCoupons();
     } catch (err) {
       setError(err.message || 'Failed to create coupon');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUpdateLimit = async (couponId, currentLimit) => {
+    const input = window.prompt('Enter new maximum usage limit (0 for unlimited):', currentLimit ?? 0);
+    if (input === null) return;
+    const num = parseInt(input, 10);
+    if (isNaN(num) || num < 0) {
+      alert('Please enter a valid positive number or 0 for unlimited.');
+      return;
+    }
+    try {
+      setUpdatingId(couponId);
+      await fetchApi(`/admin/coupons/${couponId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ maxUses: num })
+      });
+      loadCoupons();
+    } catch (err) {
+      alert('Failed to update usage limit: ' + err.message);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -126,7 +154,7 @@ export default function CouponManagementModal({ isOpen, onClose }) {
                 Coupon & Promo Code Management
               </h2>
               <p className="text-xs font-semibold text-gray-500">
-                Create promotional discount codes (e.g. 10% OFF) for customers at checkout
+                Create promotional discount codes with custom usage limits (e.g. 50 uses or unlimited)
               </p>
             </div>
           </div>
@@ -157,7 +185,7 @@ export default function CouponManagementModal({ isOpen, onClose }) {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. SPICY10, CAMPUS10"
+                    placeholder="e.g. SPICY10, WELCOME50"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-black uppercase tracking-wider text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -185,20 +213,20 @@ export default function CouponManagementModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Description / Banner Note
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Flat 10% discount on food orders"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Description / Banner Note
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Flat 10% discount on food orders"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Min Order (₹)
@@ -210,6 +238,22 @@ export default function CouponManagementModal({ isOpen, onClose }) {
                     placeholder="0 for no minimum"
                     value={minOrder}
                     onChange={(e) => setMinOrder(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Usage Limit (Max Uses)</span>
+                    <span className="text-[10px] text-gray-400 font-normal lowercase">(0 = unlimited)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 50 (0 for unlimited)"
+                    value={maxUses}
+                    onChange={(e) => setMaxUses(e.target.value)}
                     className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
@@ -252,64 +296,101 @@ export default function CouponManagementModal({ isOpen, onClose }) {
               <p className="text-xs text-gray-400 text-center py-6">No coupons created yet. Add one above!</p>
             ) : (
               <div className="space-y-2">
-                {coupons.map((c) => (
-                  <div
-                    key={c.id}
-                    className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                      c.isActive
-                        ? 'bg-white border-gray-200 shadow-2xs hover:border-emerald-300'
-                        : 'bg-gray-50 border-gray-200 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${
-                        c.isActive ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        <Percent className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-gray-900 text-sm tracking-wide">{c.code}</span>
-                          <span className="bg-rose-100 text-rose-800 text-[10px] font-black px-2 py-0.5 rounded-md">
-                            {c.discountPercent}% OFF
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            c.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
-                          }`}>
-                            {c.isActive ? 'Active' : 'Disabled'}
-                          </span>
+                {coupons.map((c) => {
+                  const isLimitReached = c.maxUses > 0 && (c.usedCount || 0) >= c.maxUses;
+
+                  return (
+                    <div
+                      key={c.id}
+                      className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        isLimitReached
+                          ? 'bg-red-50/50 border-red-200 opacity-90'
+                          : c.isActive
+                          ? 'bg-white border-gray-200 shadow-2xs hover:border-emerald-300'
+                          : 'bg-gray-50 border-gray-200 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${
+                          isLimitReached 
+                            ? 'bg-red-100 text-red-800'
+                            : c.isActive 
+                            ? 'bg-amber-100 text-amber-800' 
+                            : 'bg-gray-200 text-gray-600'
+                        }`}>
+                          <Percent className="w-5 h-5" />
                         </div>
-                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                          {c.description} {c.minOrder > 0 ? `• Min Order ₹${c.minOrder}` : '• No Min Order'}
-                        </p>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-gray-900 text-sm tracking-wide">{c.code}</span>
+                            <span className="bg-rose-100 text-rose-800 text-[10px] font-black px-2 py-0.5 rounded-md">
+                              {c.discountPercent}% OFF
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              c.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              {c.isActive ? 'Active' : 'Disabled'}
+                            </span>
+
+                            {/* Usage Limit Tracker Badge */}
+                            {c.maxUses > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLimit(c.id, c.maxUses)}
+                                title="Click to edit max usage limit"
+                                className={`text-[10px] font-black px-2 py-0.5 rounded-md transition-transform hover:scale-105 cursor-pointer ${
+                                  isLimitReached
+                                    ? 'bg-red-600 text-white shadow-xs'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                }`}
+                              >
+                                {isLimitReached
+                                  ? `🚨 LIMIT REACHED (${c.usedCount || 0}/${c.maxUses})`
+                                  : `🎟️ Uses: ${c.usedCount || 0} / ${c.maxUses}`}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLimit(c.id, c.maxUses)}
+                                title="Click to set a usage limit"
+                                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                              >
+                                🎟️ Uses: {c.usedCount || 0} / ∞ (Unlimited)
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                            {c.description} {c.minOrder > 0 ? `• Min Order ₹${c.minOrder}` : '• No Min Order'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <button
+                          onClick={() => handleToggleStatus(c.id, c.isActive)}
+                          disabled={updatingId === c.id}
+                          className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 transition-colors ${
+                            c.isActive
+                              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+                          }`}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                          <span>{c.isActive ? 'Deactivate' : 'Activate'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(c.id, c.code)}
+                          disabled={updatingId === c.id}
+                          className="p-1.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                          title="Delete Coupon"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <button
-                        onClick={() => handleToggleStatus(c.id, c.isActive)}
-                        disabled={updatingId === c.id}
-                        className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 transition-colors ${
-                          c.isActive
-                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
-                        }`}
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>{c.isActive ? 'Deactivate' : 'Activate'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(c.id, c.code)}
-                        disabled={updatingId === c.id}
-                        className="p-1.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                        title="Delete Coupon"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

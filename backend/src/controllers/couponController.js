@@ -1,6 +1,7 @@
 import { 
   getAllCoupons, 
   createCoupon, 
+  updateCoupon,
   toggleCouponStatus, 
   deleteCoupon, 
   validateCoupon 
@@ -13,12 +14,16 @@ import {
 export const getActiveCoupons = async (req, res) => {
   try {
     const all = await getAllCoupons();
-    const active = all.filter(c => c.isActive).map(c => ({
-      code: c.code,
-      discountPercent: c.discountPercent,
-      description: c.description,
-      minOrder: c.minOrder || 0
-    }));
+    const active = all
+      .filter(c => c.isActive && (!c.maxUses || c.maxUses === 0 || (c.usedCount || 0) < c.maxUses))
+      .map(c => ({
+        code: c.code,
+        discountPercent: c.discountPercent,
+        description: c.description,
+        minOrder: c.minOrder || 0,
+        maxUses: c.maxUses || 0,
+        usedCount: c.usedCount || 0
+      }));
     res.json({ success: true, data: active });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -61,9 +66,23 @@ export const getAdminCoupons = async (req, res) => {
  */
 export const createAdminCoupon = async (req, res) => {
   try {
-    const { code, discountPercent, description, minOrder } = req.body;
-    const coupon = await createCoupon({ code, discountPercent, description, minOrder });
+    const { code, discountPercent, description, minOrder, maxUses } = req.body;
+    const coupon = await createCoupon({ code, discountPercent, description, minOrder, maxUses });
     res.status(201).json({ success: true, data: coupon });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+/**
+ * PUT /api/admin/coupons/:id
+ * Admin updates an existing coupon (e.g. maxUses)
+ */
+export const updateAdminCoupon = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await updateCoupon(id, req.body);
+    res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

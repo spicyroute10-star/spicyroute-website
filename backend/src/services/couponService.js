@@ -10,12 +10,22 @@ const DEFAULT_COUPONS = [
     isActive: true,
     description: 'Flat 10% OFF on all campus food orders',
     minOrder: 0,
+    maxUses: 0, // 0 = unlimited
+    usedCount: 0,
     createdAt: new Date().toISOString()
   }
 ];
 
 // In-memory cache for ultra-fast validation
 let cachedCoupons = null;
+
+const sanitizeCoupons = (list) => {
+  return list.map(c => ({
+    ...c,
+    maxUses: c.maxUses !== undefined ? parseInt(c.maxUses, 10) || 0 : 0,
+    usedCount: c.usedCount !== undefined ? parseInt(c.usedCount, 10) || 0 : 0
+  }));
+};
 
 export const getAllCoupons = async () => {
   try {
@@ -32,8 +42,9 @@ export const getAllCoupons = async () => {
     if (user.address) {
       const parsed = JSON.parse(user.address);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        cachedCoupons = parsed;
-        return parsed;
+        const sanitized = sanitizeCoupons(parsed);
+        cachedCoupons = sanitized;
+        return sanitized;
       }
     }
 
@@ -48,8 +59,9 @@ export const getAllCoupons = async () => {
 };
 
 const saveCouponsToStore = async (coupons) => {
-  cachedCoupons = coupons;
-  const serialized = JSON.stringify(coupons);
+  const sanitized = sanitizeCoupons(coupons);
+  cachedCoupons = sanitized;
+  const serialized = JSON.stringify(sanitized);
 
   const { data: existing } = await supabase
     .from('users')
@@ -75,7 +87,7 @@ const saveCouponsToStore = async (coupons) => {
   }
 };
 
-export const createCoupon = async ({ code, discountPercent, description, minOrder }) => {
+export const createCoupon = async ({ code, discountPercent, description, minOrder, maxUses }) => {
   const cleanCode = String(code || '').trim().toUpperCase();
   if (!cleanCode) throw new Error('Coupon code is required.');
 
@@ -89,6 +101,9 @@ export const createCoupon = async ({ code, discountPercent, description, minOrde
     throw new Error(`Coupon "${cleanCode}" already exists.`);
   }
 
+  const parsedMaxUses = parseInt(maxUses, 10);
+  const finalMaxUses = isNaN(parsedMaxUses) || parsedMaxUses < 0 ? 0 : parsedMaxUses;
+
   const newCoupon = {
     id: Date.now(),
     code: cleanCode,
@@ -96,12 +111,35 @@ export const createCoupon = async ({ code, discountPercent, description, minOrde
     isActive: true,
     description: description ? description.trim() : `${percent}% discount on food orders`,
     minOrder: parseFloat(minOrder) || 0,
+    maxUses: finalMaxUses, // 0 = unlimited, > 0 = limited to N uses
+    usedCount: 0,
     createdAt: new Date().toISOString()
   };
 
   const updatedList = [newCoupon, ...coupons];
   await saveCouponsToStore(updatedList);
   return newCoupon;
+};
+
+export const updateCoupon = async (id, updates = {}) => {
+  const coupons = await getAllCoupons();
+  const index = coupons.findIndex(c => String(c.id) === String(id));
+  if (index === -1) throw new Error('Coupon not found');
+
+  if (updates.maxUses !== undefined) {
+    const parsed = parseInt(updates.maxUses, 10);
+    coupons[index].maxUses = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }
+  if (updates.minOrder !== undefined) coupons[index].minOrder = parseFloat(updates.minOrder) || 0;
+  if (updates.discountPercent !== undefined) {
+    const p = parseFloat(updates.discountPercent);
+    if (!isNaN(p) && p > 0 && p <= 100) coupons[index].discountPercent = p;
+  }
+  if (updates.description !== undefined) coupons[index].description = String(updates.description).trim();
+  if (updates.isActive !== undefined) coupons[index].isActive = Boolean(updates.isActive);
+
+  await saveCouponsToStore(coupons);
+  return coupons[index];
 };
 
 export const toggleCouponStatus = async (id, isActive) => {
@@ -121,6 +159,22 @@ export const deleteCoupon = async (id) => {
   return true;
 };
 
+export const incrementCouponUsage = async (code) => {
+  if (!code) return;
+  try {
+    const cleanCode = String(code).trim().toUpperCase();
+    const coupons = await getAllCoupons();
+    const index = coupons.findIndex(c => c.code === cleanCode);
+    if (index !== -1) {
+      coupons[index].usedCount = (parseInt(coupons[index].usedCount, 10) || 0) + 1;
+      await saveCouponsToStore(coupons);
+      console.log(`[Coupon] Incremented usage for "${cleanCode}": ${coupons[index].usedCount} / ${coupons[index].maxUses || 'Unlimited'}`);
+    }
+  } catch (err) {
+    console.error('Failed to increment coupon usage:', err);
+  }
+};
+
 export const validateCoupon = async (code, subtotal = 0) => {
   if (!code) {
     return { valid: false, message: 'Please enter a promo code.' };
@@ -136,6 +190,16 @@ export const validateCoupon = async (code, subtotal = 0) => {
 
   if (!coupon.isActive) {
     return { valid: false, message: 'This coupon has expired or is currently inactive.' };
+  }
+
+  // Check usage limit
+  const maxUses = parseInt(coupon.maxUses, 10) || 0;
+  const usedCount = parseInt(coupon.usedCount, 10) || 0;
+  if (maxUses > 0 && usedCount >= maxUses) {
+    return {
+      valid: false,
+      message: `Coupon "${cleanCode}" has reached its maximum usage limit of ${maxUses} orders (${usedCount}/${maxUses} used).`
+    };
   }
 
   const numSubtotal = parseFloat(subtotal) || 0;
@@ -154,7 +218,9 @@ export const validateCoupon = async (code, subtotal = 0) => {
       id: coupon.id,
       code: coupon.code,
       discountPercent: coupon.discountPercent,
-      description: coupon.description
+      description: coupon.description,
+      maxUses,
+      usedCount
     },
     discountAmount
   };
