@@ -515,7 +515,8 @@ export const oauthSync = async (req, res) => {
     }
 
     // Role resolution: Only spicyroute10@gmail.com can ever be ADMIN.
-    let resolvedRole = targetRole;
+    const incomingRole = (role || 'CUSTOMER').toUpperCase();
+    let resolvedRole = incomingRole;
     if (resolvedRole === 'ADMIN' && cleanEmail !== 'spicyroute10@gmail.com') {
       resolvedRole = 'CUSTOMER';
     }
