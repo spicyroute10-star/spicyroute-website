@@ -94,6 +94,36 @@ export const AuthProvider = ({ children }) => {
     return res.user;
   };
 
+  const registerWithOtp = async ({ email, password, name, role = 'CUSTOMER', otp, phone, address }) => {
+    const res = await fetchApi('/auth/register-with-otp', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: email.trim(),
+        password,
+        name: name.trim(),
+        role,
+        otp,
+        phone,
+        address
+      })
+    });
+    if (res.token && res.user) {
+      setToken(res.token);
+      setUser(res.user);
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('user', JSON.stringify(res.user));
+    }
+    return { success: true, user: res.user, token: res.token };
+  };
+
+  const deleteAccount = async () => {
+    const res = await fetchApi('/auth/account', {
+      method: 'DELETE'
+    });
+    await logout();
+    return res;
+  };
+
   const logout = async () => {
     setToken(null);
     setUser(null);
@@ -129,6 +159,8 @@ export const AuthProvider = ({ children }) => {
       login, 
       loginWithGoogle,
       register,
+      registerWithOtp,
+      deleteAccount,
       sendOtp, 
       verifyOtp, 
       logout,

@@ -4,12 +4,12 @@ import {
   User, Star, ShoppingBag, Wallet, Sun, Moon, 
   MapPin, Settings, Ticket, UserCheck, Store, 
   FileText, Shield, ChevronRight, LogOut, Layers, UtensilsCrossed, Bike, Check, X, Smartphone,
-  RefreshCw, Building2
+  RefreshCw, Building2, Trash2, AlertTriangle
 } from 'lucide-react';
 import { usePwaInstall } from '../context/PwaInstallContext';
 
 export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCount = 2 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, deleteAccount } = useAuth();
   const { triggerInstall, isInstalled } = usePwaInstall();
   const isVendor = user?.role === 'VENDOR';
   const isAdmin = user?.role === 'ADMIN';
@@ -20,6 +20,34 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
   const [editPhone, setEditPhone] = useState(user?.phone || '+91 98123 45678');
   const [editAddress, setEditAddress] = useState(user?.address || 'Restaurant Address');
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Delete Account States
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation.trim().toUpperCase() !== 'DELETE') {
+      setDeleteError("Please type DELETE to confirm account removal.");
+      return;
+    }
+    setDeleteError('');
+    setIsDeleting(true);
+    try {
+      const res = await deleteAccount();
+      if (!res.success) {
+        setDeleteError(res.error || "Failed to delete account. Please try again.");
+        setIsDeleting(false);
+      } else {
+        setShowDeleteModal(false);
+        if (setActiveView) setActiveView('home');
+      }
+    } catch (err) {
+      setDeleteError(err.message || "An unexpected error occurred.");
+      setIsDeleting(false);
+    }
+  };
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
@@ -319,17 +347,109 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
           </div>
         </div>
 
-        {/* Logout Button */}
+        {/* Action Buttons: Logout & Delete Account */}
         {user && (
-          <button
-            onClick={logout}
-            className="w-full py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 border border-rose-200 hover:bg-rose-100 transition-colors shadow-sm"
-          >
-            <LogOut className="w-4 h-4" /> Log Out
-          </button>
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={logout}
+              className="w-full py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 border border-rose-200 hover:bg-rose-100 transition-colors shadow-sm"
+            >
+              <LogOut className="w-4 h-4" /> Log Out
+            </button>
+
+            {/* Permanent Account Deletion */}
+            <div className="p-4 bg-red-50/50 rounded-2xl border border-red-100 text-center space-y-2">
+              <p className="text-[11px] font-semibold text-gray-500">
+                Want to permanently remove your Spicy Route account and associated data?
+              </p>
+              <button
+                onClick={() => {
+                  setDeleteConfirmation('');
+                  setDeleteError('');
+                  setShowDeleteModal(true);
+                }}
+                className="text-xs font-black text-red-600 hover:text-red-700 hover:underline flex items-center justify-center gap-1.5 mx-auto transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete My Account
+              </button>
+            </div>
+          </div>
         )}
 
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-red-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-gray-900">Delete Account Permanently</h3>
+                <p className="text-xs text-gray-500">This action is irreversible and permanent.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1.5 leading-relaxed font-medium">
+              <p className="font-bold">By proceeding, you understand that:</p>
+              <ul className="list-disc pl-4 space-y-1 text-[11px] text-amber-800">
+                <li>Your profile details, delivery addresses, and login credentials will be erased.</li>
+                {isVendor && <li>Your registered restaurant, menu listings, and active vendor sessions will be wiped.</li>}
+                <li>All order history, reviews, and coupon usages will be permanently detached.</li>
+              </ul>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="block text-xs font-extrabold text-gray-700">
+                To confirm, type <span className="font-black text-red-600 tracking-wider">DELETE</span> below:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder="DELETE"
+                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs font-black tracking-widest uppercase text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="w-1/2 py-3 rounded-xl text-xs font-extrabold bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting || deleteConfirmation.trim().toUpperCase() !== 'DELETE'}
+                onClick={handleDeleteAccount}
+                className="w-1/2 py-3 rounded-xl text-xs font-extrabold bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:hover:bg-red-600 shadow-md transition-all flex items-center justify-center gap-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" /> Confirm Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Profile Modal */}
       {editingProfile && (
