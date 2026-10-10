@@ -12,25 +12,29 @@ const EMAIL_USER = (process.env.EMAIL_USER || process.env.SMTP_USER || 'spicyrou
 const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
 const EMAIL_PASS = rawPass.replace(/\s+/g, '').trim();
 
-let transporter = null;
+const getTransporter = () => {
+  const user = (process.env.EMAIL_USER || process.env.SMTP_USER || 'spicyroute10@gmail.com').trim();
+  const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  const pass = rawPass.replace(/\s+/g, '').trim();
 
-if (EMAIL_USER && EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
+  if (!user || !pass) {
+    console.warn(`⚠️ [Email Service] Credentials missing: user=${Boolean(user)}, pass=${Boolean(pass)}`);
+    return null;
+  }
+
+  return nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
-    secure: true, // Use SSL
+    secure: true,
     auth: {
-      user: EMAIL_USER,
-      pass: EMAIL_PASS
+      user,
+      pass
     },
-    connectionTimeout: 7000,
-    greetingTimeout: 5000,
-    socketTimeout: 10000
+    connectionTimeout: 10000,
+    greetingTimeout: 8000,
+    socketTimeout: 15000
   });
-  console.log(`📧 [Email Service] Initialized Gmail SMTP for sender: ${EMAIL_USER}`);
-} else {
-  console.warn(`⚠️ [Email Service] No EMAIL_PASS found in environment variables.`);
-}
+};
 
 /**
  * Sends a professionally styled HTML 6-digit OTP verification email
@@ -39,13 +43,17 @@ if (EMAIL_USER && EMAIL_PASS) {
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
 export const sendVerificationEmail = async (to, otp) => {
-  if (!transporter) {
-    console.warn(`⚠️ [Email Service] Transporter not ready (missing EMAIL_PASS). Simulated delivery to ${to} with code ${otp}`);
-    return { success: false, reason: 'SMTP credentials not configured on server' };
+  const senderUser = (process.env.EMAIL_USER || process.env.SMTP_USER || 'spicyroute10@gmail.com').trim();
+  const activeTransporter = getTransporter();
+
+  if (!activeTransporter) {
+    const reason = 'EMAIL_PASS not configured or empty on server';
+    console.warn(`⚠️ [Email Service] ${reason}. Simulated delivery to ${to} with code ${otp}`);
+    return { success: false, reason };
   }
 
   const mailOptions = {
-    from: `"Spicy Route Verification" <${EMAIL_USER}>`,
+    from: `"Spicy Route Verification" <${senderUser}>`,
     to,
     subject: `Your Spicy Route Verification Code: ${otp}`,
     html: `
