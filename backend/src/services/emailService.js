@@ -93,7 +93,7 @@ export const sendVerificationEmail = async (to, otp) => {
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
+    const info = await activeTransporter.sendMail(mailOptions);
     console.log(`✅ [Email Service] Verification OTP email dispatched to ${to} (Message ID: ${info.messageId})`);
     return { success: true, messageId: info.messageId };
   } catch (err) {
