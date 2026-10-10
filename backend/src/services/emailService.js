@@ -8,8 +8,9 @@ dotenv.config();
  * Supports Gmail SMTP (e.g. using App Password) or custom SMTP.
  * Default sender is spicyroute10@gmail.com
  */
-const EMAIL_USER = process.env.EMAIL_USER || process.env.SMTP_USER || 'spicyroute10@gmail.com';
-const EMAIL_PASS = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+const EMAIL_USER = (process.env.EMAIL_USER || process.env.SMTP_USER || 'spicyroute10@gmail.com').trim();
+const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+const EMAIL_PASS = rawPass.replace(/\s+/g, '').trim();
 
 let transporter = null;
 
@@ -23,7 +24,7 @@ if (EMAIL_USER && EMAIL_PASS) {
   });
   console.log(`📧 [Email Service] Initialized Gmail SMTP for sender: ${EMAIL_USER}`);
 } else {
-  console.warn(`⚠️ [Email Service] No EMAIL_PASS/GMAIL_APP_PASSWORD found in environment variables. Real email dispatch will attempt fallback or log.`);
+  console.warn(`⚠️ [Email Service] No EMAIL_PASS found in environment variables.`);
 }
 
 /**
