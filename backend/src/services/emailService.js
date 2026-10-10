@@ -111,17 +111,17 @@ export const sendVerificationEmail = async (to, otp) => {
       </div>
   `;
 
-  // 1. Try HTTPS API first if Brevo API Key is configured (Bypasses all cloud port restrictions)
-  const brevoRes = await sendViaBrevoHttpApi(to, otp, senderUser, htmlContent);
-  if (brevoRes && brevoRes.success) {
-    return brevoRes;
+  // 1. Try HTTPS API if Brevo API Key is configured (Bypasses all cloud port restrictions)
+  if (process.env.BREVO_API_KEY) {
+    const brevoRes = await sendViaBrevoHttpApi(to, otp, senderUser, htmlContent);
+    return brevoRes || { success: false, error: 'Brevo API call failed' };
   }
 
-  // 2. Fallback to standard SMTP Nodemailer
+  // 2. Fallback to standard SMTP Nodemailer (Only for local dev or when no Brevo key is set)
   const activeTransporter = getTransporter();
 
   if (!activeTransporter) {
-    const reason = 'EMAIL_PASS not configured or empty on server';
+    const reason = 'Neither BREVO_API_KEY nor valid SMTP credentials configured';
     console.warn(`⚠️ [Email Service] ${reason}. Simulated delivery to ${to} with code ${otp}`);
     return { success: false, reason };
   }
