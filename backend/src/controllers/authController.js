@@ -226,7 +226,15 @@ export const registerWithOtp = async (req, res) => {
     }
 
     // 6. Create User with hashed password
-    const targetRole = (role || 'CUSTOMER').toUpperCase();
+    // Only spicyroute10@gmail.com is permitted to have the ADMIN role
+    let targetRole = (role || 'CUSTOMER').toUpperCase();
+    if (targetRole === 'ADMIN' && cleanEmail !== 'spicyroute10@gmail.com') {
+      targetRole = 'CUSTOMER';
+    }
+    if (cleanEmail === 'spicyroute10@gmail.com') {
+      targetRole = 'ADMIN';
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const { data: user, error: insertError } = await supabase
@@ -334,7 +342,14 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
-    const targetRole = (role || 'CUSTOMER').toUpperCase();
+    let targetRole = (role || 'CUSTOMER').toUpperCase();
+    if (targetRole === 'ADMIN' && cleanEmail !== 'spicyroute10@gmail.com') {
+      targetRole = 'CUSTOMER';
+    }
+    if (cleanEmail === 'spicyroute10@gmail.com') {
+      targetRole = 'ADMIN';
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const { data: user, error: insertError } = await supabase
       .from('users')
@@ -436,6 +451,15 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Role protection: Only spicyroute10@gmail.com can be ADMIN
+    if (cleanEmail === 'spicyroute10@gmail.com' && user.role !== 'ADMIN') {
+      user.role = 'ADMIN';
+      await supabase.from('users').update({ role: 'ADMIN' }).eq('id', user.id);
+    } else if (cleanEmail !== 'spicyroute10@gmail.com' && user.role === 'ADMIN') {
+      user.role = 'CUSTOMER';
+      await supabase.from('users').update({ role: 'CUSTOMER' }).eq('id', user.id);
+    }
+
     // Get user's restaurants
     const { data: restaurants } = await supabase
       .from('restaurants')
@@ -490,21 +514,35 @@ export const oauthSync = async (req, res) => {
       user = userByAuth;
     }
 
-    const targetRole = (role || 'CUSTOMER').toUpperCase();
+    // Role resolution: Only spicyroute10@gmail.com can ever be ADMIN.
+    let resolvedRole = targetRole;
+    if (resolvedRole === 'ADMIN' && cleanEmail !== 'spicyroute10@gmail.com') {
+      resolvedRole = 'CUSTOMER';
+    }
+    if (cleanEmail === 'spicyroute10@gmail.com') {
+      resolvedRole = 'ADMIN';
+    }
 
     if (user) {
       const updates = {};
       if (authId && !user.auth_id) {
         updates.auth_id = authId;
       }
-      // Auto-assign ADMIN if spicyroute10@gmail.com
-      if (cleanEmail === 'spicyroute10@gmail.com' && user.role !== 'ADMIN') {
-        updates.role = 'ADMIN';
-        user.role = 'ADMIN';
-      } else if (targetRole === 'VENDOR' && user.role === 'CUSTOMER') {
-        // Vendor sign-in selected
-        updates.role = 'VENDOR';
-        user.role = 'VENDOR';
+      // Always enforce ADMIN for spicyroute10@gmail.com
+      if (cleanEmail === 'spicyroute10@gmail.com') {
+        if (user.role !== 'ADMIN') {
+          updates.role = 'ADMIN';
+          user.role = 'ADMIN';
+        }
+      } else {
+        // For other users, prevent them from ever having ADMIN role
+        if (user.role === 'ADMIN') {
+          updates.role = 'CUSTOMER';
+          user.role = 'CUSTOMER';
+        } else if (resolvedRole === 'VENDOR' && user.role === 'CUSTOMER') {
+          updates.role = 'VENDOR';
+          user.role = 'VENDOR';
+        }
       }
 
       if (Object.keys(updates).length > 0) {
@@ -513,7 +551,7 @@ export const oauthSync = async (req, res) => {
       }
     } else {
       const defaultPassword = await bcrypt.hash('oauth_user_' + Date.now(), 10);
-      const initialRole = cleanEmail === 'spicyroute10@gmail.com' ? 'ADMIN' : targetRole;
+      const initialRole = cleanEmail === 'spicyroute10@gmail.com' ? 'ADMIN' : resolvedRole;
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
@@ -598,6 +636,15 @@ export const getMe = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cleanUserEmail = (user.email || '').trim().toLowerCase();
+    if (cleanUserEmail === 'spicyroute10@gmail.com' && user.role !== 'ADMIN') {
+      user.role = 'ADMIN';
+      await supabase.from('users').update({ role: 'ADMIN' }).eq('id', user.id);
+    } else if (cleanUserEmail !== 'spicyroute10@gmail.com' && user.role === 'ADMIN') {
+      user.role = 'CUSTOMER';
+      await supabase.from('users').update({ role: 'CUSTOMER' }).eq('id', user.id);
     }
 
     // Get user's restaurants

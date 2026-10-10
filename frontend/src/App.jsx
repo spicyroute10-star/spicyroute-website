@@ -108,18 +108,19 @@ function MainApp() {
     }
 
     if (activeView === 'admin') {
-      if (user?.role !== 'ADMIN') {
+      const isSuperAdmin = user?.role === 'ADMIN' || (user?.email && user.email.toLowerCase() === 'spicyroute10@gmail.com');
+      if (!isSuperAdmin) {
         return (
           <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-gray-200 text-center space-y-4 shadow-sm">
             <h3 className="text-xl font-extrabold text-purple-600">Super Admin Access Required</h3>
             <p className="text-xs text-gray-500 font-semibold">
-              Please sign in with a Super Admin account to access platform analytics.
+              Platform administration is restricted to the authorized administrator account. Please log in with Google using <span className="font-bold text-purple-700">spicyroute10@gmail.com</span>.
             </p>
             <button
               onClick={() => setActiveView('login')}
               className="px-5 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black shadow-md hover:bg-purple-700"
             >
-              Sign In as Super Admin
+              Sign In via Google
             </button>
           </div>
         );

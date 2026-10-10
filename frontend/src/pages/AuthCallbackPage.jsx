@@ -91,7 +91,8 @@ export default function AuthCallbackPage() {
             if (setSession) setSession(syncRes.token, syncRes.user);
 
             const role = syncRes.user.role;
-            const redirectPath = role === 'ADMIN' ? '/?view=admin'
+            const isSuperAdminEmail = (userEmail || '').trim().toLowerCase() === 'spicyroute10@gmail.com';
+            const redirectPath = (role === 'ADMIN' || isSuperAdminEmail) ? '/?view=admin'
               : role === 'VENDOR' ? '/?view=vendor'
               : '/';
 

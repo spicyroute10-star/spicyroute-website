@@ -12,7 +12,7 @@ export default function ProfileMenuPage({ onOpenLegal, setActiveView, ordersCoun
   const { user, logout, deleteAccount } = useAuth();
   const { triggerInstall, isInstalled } = usePwaInstall();
   const isVendor = user?.role === 'VENDOR';
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || (user?.email && user.email.toLowerCase() === 'spicyroute10@gmail.com');
 
   const [darkMode, setDarkMode] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);

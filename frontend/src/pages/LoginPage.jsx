@@ -274,57 +274,42 @@ export default function LoginPage({ onSuccess, onCancel }) {
           </div>
         )}
 
-        {/* Role Selection (Only shown on initial details step) */}
+        {/* Role Selection (Only Customer and Vendor - Admin is exclusively via spicyroute10@gmail.com Google login) */}
         {signupStep === 'details' && (
           <div className="space-y-2">
             <label className="block text-xs font-extrabold text-gray-700 uppercase">
-              Select Role
+              Select Account Type
             </label>
             
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {/* Customer Role */}
               <button
                 type="button"
                 onClick={() => setSelectedRole('CUSTOMER')}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                className={`p-3.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
                   selectedRole === 'CUSTOMER'
                     ? 'bg-rose-50 border-rose-600 text-rose-700 ring-2 ring-rose-500/20 shadow-sm'
                     : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 <User className={`w-5 h-5 ${selectedRole === 'CUSTOMER' ? 'text-rose-600' : 'text-gray-400'}`} />
-                <span className="text-[11px] font-black leading-tight">Customer</span>
-                <span className="text-[9px] font-semibold text-gray-400">Order Food</span>
+                <span className="text-xs font-black leading-tight">Customer</span>
+                <span className="text-[10px] font-semibold text-gray-400">Order & Track Food</span>
               </button>
 
               {/* Vendor Role */}
               <button
                 type="button"
                 onClick={() => setSelectedRole('VENDOR')}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                className={`p-3.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
                   selectedRole === 'VENDOR'
                     ? 'bg-amber-50 border-amber-600 text-amber-700 ring-2 ring-amber-500/20 shadow-sm'
                     : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 <Store className={`w-5 h-5 ${selectedRole === 'VENDOR' ? 'text-amber-600' : 'text-gray-400'}`} />
-                <span className="text-[11px] font-black leading-tight">Vendor</span>
-                <span className="text-[9px] font-semibold text-gray-400">Restaurant</span>
-              </button>
-
-              {/* Super Admin Role */}
-              <button
-                type="button"
-                onClick={() => setSelectedRole('ADMIN')}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
-                  selectedRole === 'ADMIN'
-                    ? 'bg-purple-50 border-purple-600 text-purple-700 ring-2 ring-purple-500/20 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <ShieldAlert className={`w-5 h-5 ${selectedRole === 'ADMIN' ? 'text-purple-600' : 'text-gray-400'}`} />
-                <span className="text-[11px] font-black leading-tight">Admin</span>
-                <span className="text-[9px] font-semibold text-gray-400">Executive</span>
+                <span className="text-xs font-black leading-tight">Vendor</span>
+                <span className="text-[10px] font-semibold text-gray-400">Manage Restaurant</span>
               </button>
             </div>
           </div>
