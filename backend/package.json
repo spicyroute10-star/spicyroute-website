@@ -27,7 +27,11 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7",
+    "nodemon": "^3.1.14",
     "prisma": "^5.22.0"
+  },
+  "overrides": {
+    "braces": "^3.0.3",
+    "brace-expansion": "^2.0.1"
   }
 }
