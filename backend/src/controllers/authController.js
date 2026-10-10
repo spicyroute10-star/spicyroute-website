@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/supabase.js';
 import { isDisposableEmail, isValidEmailFormat, isStrongPassword } from '../utils/securityUtils.js';
+import { sendVerificationEmail } from '../services/emailService.js';
 
 // In-memory OTP store with 5-minute expiry
 const otpStore = new Map();
@@ -55,14 +56,18 @@ export const sendOtp = async (req, res) => {
       expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
     });
 
-    console.log(`🔑 [Security OTP Dispatch] Sent OTP "${otp}" to ${identifier}`);
+    console.log(`🔑 [Security OTP Dispatch] Generated OTP for ${identifier}`);
+
+    // If identifier is an email address, dispatch verification email
+    if (email) {
+      await sendVerificationEmail(identifier, otp);
+    }
 
     res.json({
       success: true,
-      message: `6-Digit OTP verification code sent successfully to ${identifier}`,
+      message: `6-Digit OTP verification code sent to ${identifier}`,
       identifier,
-      isNewUser: !existingUser,
-      otp // provided so users/reviewers can verify reliably
+      isNewUser: !existingUser
     });
   } catch (error) {
     console.error('Error in sendOtp:', error);

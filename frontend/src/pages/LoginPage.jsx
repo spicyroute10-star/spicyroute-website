@@ -28,7 +28,6 @@ export default function LoginPage({ onSuccess, onCancel }) {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [otpHint, setOtpHint] = useState('');
 
   // Resend OTP countdown timer
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -92,11 +91,8 @@ export default function LoginPage({ onSuccess, onCancel }) {
       }
 
       setSignupStep('otp');
-      setResendCooldown(30);
-      setSuccessMessage(`A 6-digit verification code has been sent to ${cleanEmail}`);
-      if (res?.otp) {
-        setOtpHint(res.otp);
-      }
+      setResendCooldown(45);
+      setSuccessMessage(`A 6-digit verification code has been dispatched to ${cleanEmail} from spicyroute10@gmail.com`);
     } catch (err) {
       setError(err.message || 'Failed to send verification code. Please check your email.');
     } finally {
@@ -445,29 +441,16 @@ export default function LoginPage({ onSuccess, onCancel }) {
         ) : (
           /* Create Account: Step 2 (6-digit OTP Verification) */
           <form onSubmit={handleVerifyAndRegister} className="space-y-4 animate-in fade-in duration-200">
-            <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl text-center space-y-1">
+            <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl text-center space-y-1.5">
               <ShieldCheck className="w-8 h-8 text-rose-600 mx-auto mb-1" />
               <p className="text-xs font-extrabold text-gray-900">Verify Your Email Address</p>
               <p className="text-[11px] font-semibold text-gray-600">
-                We sent a 6-digit code to <span className="text-rose-700 font-bold">{email}</span>
+                A 6-digit verification code has been emailed to <span className="text-rose-700 font-bold">{email}</span> from <span className="font-bold text-gray-800">spicyroute10@gmail.com</span>
+              </p>
+              <p className="text-[10px] text-gray-400 font-medium">
+                Please check your inbox or Spam/Junk folder. Code expires in 5 minutes.
               </p>
             </div>
-
-            {/* Quick OTP Helper Pill */}
-            {otpHint && (
-              <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-center">
-                <span className="text-[11px] font-bold text-amber-900">
-                  Verification Code: <strong className="text-sm font-black tracking-widest text-amber-950 ml-1">{otpHint}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setOtp(otpHint)}
-                  className="ml-2 text-[10px] font-extrabold text-amber-700 underline hover:text-amber-900"
-                >
-                  Auto-Fill
-                </button>
-              </div>
-            )}
 
             <div>
               <label className="block text-xs font-extrabold text-gray-700 uppercase mb-1.5 text-center">
