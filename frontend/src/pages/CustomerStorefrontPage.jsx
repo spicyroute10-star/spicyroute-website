@@ -27,7 +27,7 @@ export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
   const [bannerIndex, setBannerIndex] = useState(1);
 
   // Quick GPS Geolocation + Reverse Geocoding via OpenStreetMap / Maps API
-  // Quick GPS Geolocation + Reverse Geocoding via BigDataCloud & OpenStreetMap
+  // High-Accuracy GPS Geolocation + Street-Level Reverse Geocoding
   const handleQuickLocate = () => {
     setDetectingLocation(true);
     setLocationSuccess(false);
@@ -36,45 +36,54 @@ export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
       const { latitude, longitude } = coords;
       let fullAddress = '';
 
-      // 1. BigDataCloud reverse geocode (Free, instant, client-side, CORS allowed)
+      // 1. Try OpenStreetMap Nominatim with explicit zoom=18 for exact building / street level
       try {
         const res = await fetch(
-          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&zoom=18&format=json&addressdetails=1`
         );
         if (res.ok) {
           const data = await res.json();
-          const area = data.locality || data.subLocality || data.neighbourhood || '';
-          const city = data.city || data.principalSubdivision || '';
-          const state = data.principalSubdivision || '';
-          const zip = data.postcode || '';
-          const parts = [area, city, state, zip].filter(Boolean);
-          if (parts.length > 0) fullAddress = [...new Set(parts)].join(', ');
+          if (data?.address) {
+            const addr = data.address;
+            const building = addr.building || addr.amenity || addr.shop || addr.office || '';
+            const road = addr.road || addr.street || addr.pedestrian || addr.footway || '';
+            const subLocality = addr.suburb || addr.neighbourhood || addr.residential || addr.quarter || '';
+            const city = addr.city || addr.town || addr.village || addr.county || '';
+            const state = addr.state || '';
+            const pincode = addr.postcode || '';
+
+            const parts = [building, road, subLocality, city, state, pincode].filter(Boolean);
+            if (parts.length >= 2) {
+              fullAddress = [...new Set(parts)].join(', ');
+            }
+          }
+          if (!fullAddress && data?.display_name) {
+            fullAddress = data.display_name.split(',').slice(0, 4).join(', ').trim();
+          }
         }
       } catch (err) {}
 
-      // 2. Fallback to OpenStreetMap
+      // 2. Try BigDataCloud reverse geocode client
       if (!fullAddress) {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
           );
           if (res.ok) {
             const data = await res.json();
-            if (data?.address) {
-              const road = data.address.road || data.address.suburb || data.address.neighbourhood || '';
-              const locality = data.address.city || data.address.town || data.address.county || '';
-              const state = data.address.state || '';
-              const parts = [road, locality, state].filter(Boolean);
-              if (parts.length > 0) fullAddress = parts.join(', ');
-            } else if (data?.display_name) {
-              fullAddress = data.display_name.split(',').slice(0, 3).join(', ');
-            }
+            const road = data.localityInfo?.administrative?.find(a => a.adminLevel >= 8)?.name || '';
+            const area = data.locality || data.subLocality || data.neighbourhood || '';
+            const city = data.city || data.principalSubdivision || '';
+            const state = data.principalSubdivision || '';
+            const zip = data.postcode || '';
+            const parts = [road, area, city, state, zip].filter(Boolean);
+            if (parts.length > 0) fullAddress = [...new Set(parts)].join(', ');
           }
         } catch (err) {}
       }
 
       if (!fullAddress) {
-        fullAddress = `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+        fullAddress = `Exact Location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
       }
 
       setSelectedLocation(fullAddress);
@@ -96,7 +105,7 @@ export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
           setTimeout(() => setLocationSuccess(false), 2500);
         }
       } catch (e) {
-        alert('Could not determine location. Please select an address manually.');
+        alert('Could not determine exact location. Please select an address from the delivery address menu.');
       } finally {
         setDetectingLocation(false);
       }
@@ -107,18 +116,18 @@ export default function CustomerStorefrontPage({ onOpenCart, onOpenLegal }) {
       return;
     }
 
-    // Fast lock first
+    // Direct High Accuracy GPS Request (enableHighAccuracy: true, maximumAge: 0 forces fresh GPS lock)
     navigator.geolocation.getCurrentPosition(
       (pos) => onCoordsFound(pos.coords),
-      () => {
-        // Fallback to high accuracy or IP
+      (err) => {
+        console.warn('High accuracy GPS attempt returned error, trying standard accuracy:', err?.message);
         navigator.geolocation.getCurrentPosition(
           (pos) => onCoordsFound(pos.coords),
           () => fetchIpFallback(),
-          { enableHighAccuracy: true, timeout: 8000 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
         );
       },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 

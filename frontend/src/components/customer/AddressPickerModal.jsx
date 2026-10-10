@@ -59,38 +59,55 @@ export default function AddressPickerModal({ isOpen, onClose, onSelectAddress, c
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // OpenStreetMap Reverse Geocoding API (Fast, Free, No API key required)
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
-          );
-          const data = await res.json();
-
+          // 1. OpenStreetMap Reverse Geocoding API with zoom=18 for exact building / street level
           let fullAddress = '';
-          let detectedArea = '';
-          let detectedCity = '';
-          let detectedPincode = '';
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&zoom=18&format=json&addressdetails=1`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.address) {
+                const addr = data.address;
+                const building = addr.building || addr.amenity || addr.shop || addr.office || '';
+                const road = addr.road || addr.street || addr.pedestrian || addr.footway || '';
+                const subLocality = addr.suburb || addr.neighbourhood || addr.residential || addr.quarter || '';
+                const city = addr.city || addr.town || addr.village || addr.county || '';
+                const state = addr.state || '';
+                const zip = addr.postcode || '';
 
-          if (data && data.address) {
-            const addr = data.address;
-            const road = addr.road || addr.street || addr.suburb || addr.neighbourhood || '';
-            const locality = addr.city || addr.town || addr.village || addr.county || '';
-            const state = addr.state || '';
-            const zip = addr.postcode || '';
+                const parts = [building, road, subLocality, city, state, zip].filter(Boolean);
+                if (parts.length >= 2) {
+                  fullAddress = [...new Set(parts)].join(', ');
+                }
+              }
+              if (!fullAddress && data?.display_name) {
+                fullAddress = data.display_name.split(',').slice(0, 4).join(', ').trim();
+              }
+            }
+          } catch (e) {}
 
-            detectedArea = road;
-            detectedCity = locality;
-            detectedPincode = zip;
-
-            const parts = [road, locality, state, zip].filter(Boolean);
-            fullAddress = parts.join(', ');
-          }
-
-          if (!fullAddress && data.display_name) {
-            fullAddress = data.display_name;
+          // 2. Fallback to BigDataCloud
+          if (!fullAddress) {
+            try {
+              const res = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+              );
+              if (res.ok) {
+                const data = await res.json();
+                const road = data.localityInfo?.administrative?.find(a => a.adminLevel >= 8)?.name || '';
+                const area = data.locality || data.subLocality || data.neighbourhood || '';
+                const city = data.city || data.principalSubdivision || '';
+                const state = data.principalSubdivision || '';
+                const zip = data.postcode || '';
+                const parts = [road, area, city, state, zip].filter(Boolean);
+                if (parts.length > 0) fullAddress = [...new Set(parts)].join(', ');
+              }
+            } catch (e) {}
           }
 
           if (!fullAddress) {
-            fullAddress = `Live GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            fullAddress = `Exact Location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
           }
 
           const liveAddressItem = {
@@ -112,7 +129,7 @@ export default function AddressPickerModal({ isOpen, onClose, onSelectAddress, c
           }, 1000);
         } catch (err) {
           console.error('Geocoding error:', err);
-          const fallback = `Live Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+          const fallback = `Exact Location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
           onSelectAddress(fallback);
           onClose();
         } finally {
