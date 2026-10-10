@@ -58,9 +58,11 @@ export const sendOtp = async (req, res) => {
 
     console.log(`🔑 [Security OTP Dispatch] Generated OTP for ${identifier}`);
 
-    // If identifier is an email address, dispatch verification email
+    // If identifier is an email address, dispatch verification email asynchronously
     if (email) {
-      await sendVerificationEmail(identifier, otp);
+      sendVerificationEmail(identifier, otp).catch(err => {
+        console.error(`⚠️ [Email Dispatch Warning] Background dispatch error for ${identifier}:`, err?.message);
+      });
     }
 
     res.json({

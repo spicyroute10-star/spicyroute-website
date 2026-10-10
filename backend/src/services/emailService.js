@@ -16,11 +16,16 @@ let transporter = null;
 
 if (EMAIL_USER && EMAIL_PASS) {
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASS
-    }
+    },
+    connectionTimeout: 7000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000
   });
   console.log(`📧 [Email Service] Initialized Gmail SMTP for sender: ${EMAIL_USER}`);
 } else {
