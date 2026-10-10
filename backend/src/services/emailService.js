@@ -18,7 +18,6 @@ const getTransporter = () => {
   const pass = rawPass.replace(/\s+/g, '').trim();
 
   if (!user || !pass) {
-    console.warn(`⚠️ [Email Service] Credentials missing: user=${Boolean(user)}, pass=${Boolean(pass)}`);
     return null;
   }
 
@@ -32,6 +31,44 @@ const getTransporter = () => {
 };
 
 /**
+ * Sends email via Brevo REST API (HTTPS over Port 443)
+ * Port 443 is never blocked by Render Free Tier firewalls!
+ */
+const sendViaBrevoHttpApi = async (to, otp, senderEmail, htmlContent) => {
+  const apiKey = (process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || '').trim();
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: 'Spicy Route Verification', email: senderEmail },
+        to: [{ email: to }],
+        subject: `Your Spicy Route Verification Code: ${otp}`,
+        htmlContent
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error(`❌ [Brevo API Error]:`, data);
+      return { success: false, error: data.message || 'Brevo HTTP API error' };
+    }
+
+    console.log(`✅ [Brevo API] Verification OTP email dispatched via HTTPS to ${to} (Message ID: ${data.messageId})`);
+    return { success: true, messageId: data.messageId };
+  } catch (err) {
+    console.error(`❌ [Brevo API Request Error]:`, err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * Sends a professionally styled HTML 6-digit OTP verification email
  * @param {string} to - Recipient email address
  * @param {string} otp - 6-digit verification code
@@ -39,19 +76,7 @@ const getTransporter = () => {
  */
 export const sendVerificationEmail = async (to, otp) => {
   const senderUser = (process.env.EMAIL_USER || process.env.SMTP_USER || 'spicyroute10@gmail.com').trim();
-  const activeTransporter = getTransporter();
-
-  if (!activeTransporter) {
-    const reason = 'EMAIL_PASS not configured or empty on server';
-    console.warn(`⚠️ [Email Service] ${reason}. Simulated delivery to ${to} with code ${otp}`);
-    return { success: false, reason };
-  }
-
-  const mailOptions = {
-    from: `"Spicy Route Verification" <${senderUser}>`,
-    to,
-    subject: `Your Spicy Route Verification Code: ${otp}`,
-    html: `
+  const htmlContent = `
       <div style="font-family: 'Segoe UI', Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #f1f5f9; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); padding: 32px 24px; text-align: center;">
@@ -84,7 +109,28 @@ export const sendVerificationEmail = async (to, otp) => {
           </p>
         </div>
       </div>
-    `
+  `;
+
+  // 1. Try HTTPS API first if Brevo API Key is configured (Bypasses all cloud port restrictions)
+  const brevoRes = await sendViaBrevoHttpApi(to, otp, senderUser, htmlContent);
+  if (brevoRes && brevoRes.success) {
+    return brevoRes;
+  }
+
+  // 2. Fallback to standard SMTP Nodemailer
+  const activeTransporter = getTransporter();
+
+  if (!activeTransporter) {
+    const reason = 'EMAIL_PASS not configured or empty on server';
+    console.warn(`⚠️ [Email Service] ${reason}. Simulated delivery to ${to} with code ${otp}`);
+    return { success: false, reason };
+  }
+
+  const mailOptions = {
+    from: `"Spicy Route Verification" <${senderUser}>`,
+    to,
+    subject: `Your Spicy Route Verification Code: ${otp}`,
+    html: htmlContent
   };
 
   try {
